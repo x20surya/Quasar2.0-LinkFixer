@@ -54,3 +54,7 @@ Get User Data
 URL: GET /api/auth/user
 Headers: x-auth-token: your_jwt_token
 Response: Returns the current user's data
+
+URL: POST /api/getWebsites
+Body:none
+Response : bruh
