@@ -9,8 +9,10 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { Link } from "react-router";
+import { useMyContext } from "@/context/context";
 
 function Navbar() {
+  const { islogin,setislogin } = useMyContext();
   return (
     <div className="h-screen md:w-40 w-16 fixed border-r-2 border-gray-400/50 bg-black flex flex-col ">
       <div className="md:flex flex-col justify-center hidden">
@@ -44,22 +46,35 @@ function Navbar() {
           <SheetHeader>
             <SheetTitle></SheetTitle>
             <SheetDescription className="mt-10">
-              <Link to="/" className=" w-full flex justify-start items-center h-10  gap-x-1 hover:bg-orange-500 border-b-2 border-gray-400/40">
-                <p  className="text-white font-semibold  w-full p-2">Home</p>
+              <Link
+                to="/"
+                className=" w-full flex justify-start items-center h-10  gap-x-1 hover:bg-orange-500 border-b-2 border-gray-400/40"
+              >
+                <p className="text-white font-semibold  w-full p-2">Home</p>
                 <ChevronRight className="stroke-white" />
               </Link>
-              <Link to="/dashboard" className=" w-full flex justify-between items-center h-10  pl-2 gap-x-1 hover:bg-orange-500 border-b-2 border-gray-400/40">
-                <p  className="text-white font-semibold ">Dashboard</p>
+              <Link
+                to="/dashboard"
+                className=" w-full flex justify-between items-center h-10  pl-2 gap-x-1 hover:bg-orange-500 border-b-2 border-gray-400/40"
+              >
+                <p className="text-white font-semibold ">Dashboard</p>
                 <ChevronRight className="stroke-white" />
               </Link>
               <Link className=" w-full flex justify-between items-center h-10  pl-2 gap-x-1 hover:bg-orange-500 border-b-2 border-gray-400/40">
                 <p className="text-white font-semibold ">Profile</p>
                 <ChevronRight className="stroke-white" />
               </Link>
-              <Link className=" w-full flex justify-between items-center h-10  pl-2 gap-x-1 hover:bg-orange-500 border-b-2 border-gray-400/40">
-                <p className="text-white font-semibold ">Sign In</p>
-                <ChevronRight className="stroke-white" />
-              </Link>
+              {islogin ? (
+                <Link to="/signin" className=" w-full flex justify-between items-center h-10  pl-2 gap-x-1 hover:bg-orange-500 border-b-2 border-gray-400/40">
+                  <p className="text-white font-semibold ">Sign Out</p>
+                  <ChevronRight className="stroke-white" onClick={()=>{setislogin(false)}}/>
+                </Link>
+              ) : (
+                <Link to="/signin" className=" w-full flex justify-between items-center h-10  pl-2 gap-x-1 hover:bg-orange-500 border-b-2 border-gray-400/40">
+                  <p className="text-white font-semibold ">Sign In</p>
+                  <ChevronRight className="stroke-white" />
+                </Link>
+              )}
             </SheetDescription>
           </SheetHeader>
         </SheetContent>

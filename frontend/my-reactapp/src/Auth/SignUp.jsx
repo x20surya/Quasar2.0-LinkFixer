@@ -11,12 +11,6 @@ export default function SignUp() {
 
   const handleSubmit = async (event) => {
     event.preventDefault();
-
-    if (!username || !email || !password) {
-      alert("Please fill in all fields.");
-      return;
-    }
-
     try {
       const response = await axios.post(
         "http://localhost:5000/api/auth/register",
@@ -26,20 +20,23 @@ export default function SignUp() {
           password,
         }
       );
-
-      if (response.data.success) {
-        console.log(response.data);
-        alert("Registration successful! Please log in.");
-      } else {
-        console.log("User already exists or registration failed.");
-        alert(response.data.message || "Registration failed.");
-      }
+      console.log(response.data);
+      alert("successfully registered!,verify your email");
     } catch (error) {
       console.error("Error registering user:", error);
-      alert(
-        error.response?.data?.message ||
-          "Something went wrong. Please try again."
-      );
+      if (error.response) {
+        const { status, data } = error.response;
+
+        if (status === 400) {
+          alert(data.message || "Invalid request. Please check your inputs.");
+        } else if (status === 409) {
+          alert("Email ID already exists. Please use a different email.");
+        } else {
+          alert("Something went wrong. Please try again later.");
+        }
+      } else {
+        alert("Network error. Please check your internet connection.");
+      }
     }
   };
   return (

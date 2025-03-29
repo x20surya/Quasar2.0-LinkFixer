@@ -4,20 +4,20 @@ const MyContext = createContext();
 export const MyContextProvider = ({ children }) => {
  
     const [islogin, setislogin] = useState(() => JSON.parse(localStorage.getItem('islogin')) || false);
-    const [user, setuser] = useState(() => localStorage.getItem('user') || '');
+    const [token, settoken] = useState(() => localStorage.getItem('token') || '');
 
 
   useEffect(() => {
     localStorage.setItem('islogin', JSON.stringify(islogin));
-    localStorage.setItem('user', user);
+    localStorage.setItem('token', token);
 
-  }, [islogin,user]);
+  }, [islogin,token]);
   
   const contextValue = {
     islogin,
     setislogin,
-    user,
-    setuser,
+    token,
+    settoken,
   };
 
   return (
