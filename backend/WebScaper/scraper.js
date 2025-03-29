@@ -2,13 +2,18 @@ import { stat } from "fs";
 import puppeteer from "puppeteer";
 import {URL} from "url";
 
-export async function scrape({startURL, authentication, maxPages = 3, API_KEY = ""}) {
+export  default async function scrape({startURL, authentication, maxPages = 3, API_KEY = ""}) {
     const browser = await puppeteer.launch({
         headless: "new", // Use the new headless mode
         args: ['--disable-setuid-sandbox', '--no-sandbox', '--disable-features=BlockInsecurePrivateNetworkRequests',
             '--disable-blink-features=AutomationControlled'
         ],
     });
+    // console.log("Browser launched");
+    // console.log("Start URL: ", startURL);
+    // console.log("Authentication: ", authentication);
+    // console.log("Max Pages: ", maxPages);
+    // console.log("API Key: ", API_KEY);
 
     const startUrlParsed = new URL(startURL);
     const baseDomain = startUrlParsed.hostname;
@@ -47,14 +52,13 @@ export async function scrape({startURL, authentication, maxPages = 3, API_KEY = 
             'Accept-Language': 'en-US,en;q=0.9',
             'Referer': 'https://www.google.com/',
             'Upgrade-Insecure-Requests': '1',
-            ...authentication ? { 'Authorization': `Bearer ${authentication}` } : {}, // Add API key if provided 
-            ...API_KEY ? { 'x-api-key': API_KEY } : {} // Add API key if provided
+            ...authentication ? { 'Authorization': `Bearer ${authentication}` } : {}
           });
         await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/93.0.4577.82 Safari/537.36');
         const res = await page.goto(currentUrl, { waitUntil: "networkidle2" });
         
         visitedUrls.add(currentUrl);
-        checkedLinks.add({currentUrl ,status: res.status(), statusText: res.statusText()});
+        checkedLinks.add({link :currentUrl ,status: res.status(), statusText: res.statusText()});
         try {
             await page.goto(currentUrl, { waitUntil: "networkidle2" });
         } catch (error) {
@@ -92,13 +96,16 @@ export async function scrape({startURL, authentication, maxPages = 3, API_KEY = 
             }
         }
     }
+    console.log("Broken Links: ", brokenLinks);
+    console.log("Checked Links: ", checkedLinks);
+    console.log("Visited URLs: ", visitedUrls);
 
     await browser.close();
     return {brokenLinks: Array.from(brokenLinks), visitedUrls: Array.from(visitedUrls), checkedLinks: Array.from(checkedLinks)};
 }
 
-// const startURL = "https://www.w3.org/blog/2008/04/broken-link-checker/"; 
-// scrape(startURL, "1234567890", 10000) 
+// const startURL = "https://example.com/"; 
+// scrape({startURL, authentication :"1234567890", maxPages :10000}) 
 //     .then(data => {
 //         console.log("Scraping completed:", data);
 //     })
