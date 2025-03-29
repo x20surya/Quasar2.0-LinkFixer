@@ -2,19 +2,23 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Mail, Lock } from "lucide-react";
-import { useState,useContext } from "react";
+import { useState, useContext } from "react";
 import { useMyContext } from "@/context/context";
 import Axios from "axios";
+import { useNavigate } from "react-router";
 export default function SignIn() {
   const [email, SetEmail] = useState("");
   const [password, SetPassword] = useState("");
   const { islogin, setislogin } = useMyContext();
-  const { token,settoken  } = useMyContext();
+  const { token, settoken } = useMyContext();
+  const navigateto = useNavigate();
 
   const handleSubmit = async (event) => {
     event.preventDefault();
     if (!email || !password || password.length < 8) {
-      alert("Please fill in both fields. Length of password must be grater than 8 .");
+      alert(
+        "Please fill in both fields. Length of password must be grater than 8 ."
+      );
       return;
     }
 
@@ -27,17 +31,19 @@ export default function SignIn() {
         }
       );
       console.log("Response:", response.data);
-      if(response.data.user.emailVerified){
-          setislogin(true);
-          settoken(response.data.token);
-      }else{
-        alert("Verify your email!")
-      }
+      setislogin(true);
+      navigateto("/");
+      // if(response.data.user.emailVerified){
+      //     setislogin(true);
+      //     settoken(response.data.token);
+      // }else{
+      //   alert("Verify your email!")
+      // }
     } catch (error) {
       console.error("Login error:", error);
     }
   };
-  console.log(token)
+  console.log(token);
 
   return (
     <div className="flex justify-center items-center h-screen bg-black">
