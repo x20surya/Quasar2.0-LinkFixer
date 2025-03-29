@@ -1,3 +1,4 @@
+import { stat } from "fs";
 import puppeteer from "puppeteer";
 import {URL} from "url";
 
@@ -29,9 +30,7 @@ export async function scrape(startURL,API_KEY, maxPages = 3) {
 
     const res = await start.goto(startURL, { waitUntil: "networkidle2" });
     if (res.status() !== 200) {
-        console.error(`Error navigating to ${startURL}: ${res.status()}`);
         brokenLinks.add({link: startURL, status: res.status(), statusText: res.statusText()});
-        // throw new Error(`Failed to load the starting URL: ${startURL}`);
     }
 
 
@@ -50,17 +49,13 @@ export async function scrape(startURL,API_KEY, maxPages = 3) {
             ...API_KEY ? { 'Authorization': `Bearer ${API_KEY}` } : {} // Add API key if provided 
           });
         await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/93.0.4577.82 Safari/537.36');
-        await page.goto(currentUrl, { waitUntil: "networkidle2" });
+        const res = await page.goto(currentUrl, { waitUntil: "networkidle2" });
         
         visitedUrls.add(currentUrl);
-        console.log(`Visiting: ${currentUrl}`);
-        console.log(`Visited URLs: ${visitedUrls.size}`);
-        console.log(visitedUrls)
-        console.log(`URLs to visit: ${urlsToVisit.length}`);
+        checkedLinks.add({currentUrl ,status: res.status(), statusText: res.statusText()});
         try {
             await page.goto(currentUrl, { waitUntil: "networkidle2" });
         } catch (error) {
-            console.error(`Error navigating to ${currentUrl}: ${error.message}`);
             continue;
         }
 
@@ -87,7 +82,7 @@ export async function scrape(startURL,API_KEY, maxPages = 3) {
                 if (parsedLink.hostname === baseDomain) {
                     urlsToVisit.push(link);
                 }
-                checkedLinks.add(link);
+                checkedLinks.add({link, status: response.status(), statusText: response.statusText()});
                 
             } catch (error) {
                 console.error(`Error checking link ${link}:`, error.message);
