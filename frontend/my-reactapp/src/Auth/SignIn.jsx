@@ -31,14 +31,14 @@ export default function SignIn() {
         }
       );
       console.log("Response:", response.data);
-      setislogin(true);
-      navigateto("/");
-      // if(response.data.user.emailVerified){
-      //     setislogin(true);
-      //     settoken(response.data.token);
-      // }else{
-      //   alert("Verify your email!")
-      // }
+
+      if(response.data.user.emailVerified){
+          setislogin(true);
+          settoken(response.data.token);
+          navigateto("/")
+      }else{
+        alert("Verify your email!")
+      }
     } catch (error) {
       console.error("Login error:", error);
     }
@@ -83,7 +83,7 @@ export default function SignIn() {
             </Button>
             <p className="text-center text-sm text-white">
               Don't have an account?{" "}
-              <a href="#" className="text-yellow-500 hover:underline">
+              <a href="#" className="text-yellow-500 hover:underline" onClick={()=>{navigateto("/signup")}}>
                 Sign Up
               </a>
             </p>

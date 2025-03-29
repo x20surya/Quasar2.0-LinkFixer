@@ -4,6 +4,8 @@ import { Input } from "@/components/ui/input";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useMyContext } from "@/context/context";
+import { useNavigate } from "react-router";
 import {
   Accordion,
   AccordionContent,
@@ -14,7 +16,67 @@ import { useState, useEffect } from "react";
 import axios from "axios";
 
 function Dashboard() {
-  
+  const [link, setlink] = useState("");
+  const navigateto = useNavigate();
+  const { token } = useMyContext();
+  const [list, setlist] = useState("");
+  console.log(token);
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    try {
+      const response = await axios.post(
+        "http://localhost:5000/api/addWebsite",
+        {
+          startURL: link,
+        },
+        {
+          headers: {
+            "x-auth-token": token,
+          },
+        }
+      );
+      console.log(response.data);
+      alert("successfully send");
+      navigateto(0);
+    } catch (error) {
+      console.error("Error sending lnk:", error);
+      if (error.response) {
+        const { status, data } = error.response;
+
+        if (status === 400) {
+          alert(data.message || "Invalid request. Please check your inputs.");
+        }
+      } else {
+        alert("Network error. Please check your internet connection.");
+      }
+    }
+  };
+
+  const Getfile = async () => {
+    try {
+      const response = await axios.get("", {
+        headers: {
+          "x-auth-token": token,
+        },
+      });
+    } catch (error) {
+      console.log(error);
+    }
+  };
+  useEffect(()=>{
+    
+  },[])
+  const handleclick = async () => {
+    const response = await axios.post("http://localhost:5000/api/getStatus", {
+      websiteID,
+    });
+    try {
+    } catch (error) {
+      console.log("Error :", error);
+    }
+  };
+
   return (
     <div>
       <Navbar></Navbar>
@@ -40,12 +102,24 @@ function Dashboard() {
                   <p className="text-white">Add Links</p>
                 </AccordionTrigger>
                 <AccordionContent>
-                  <form action="" className="flex gap-2 mt-4">
+                  <form
+                    action=""
+                    className="flex gap-2 mt-4 "
+                    onSubmit={handleSubmit}
+                  >
                     <Input
+                      placeholder="Enter link"
+                      value={link}
+                      onChange={(e) => {
+                        setlink(e.target.value);
+                      }}
                       type="text"
                       className="w-72 text-white bg-slate-400/20"
                     />
-                    <Button variant="secondary"> Submit</Button>
+                    <Button variant="secondary" type="submit">
+                      {" "}
+                      Submit
+                    </Button>
                   </form>
                 </AccordionContent>
               </AccordionItem>

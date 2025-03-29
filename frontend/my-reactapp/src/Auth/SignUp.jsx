@@ -4,11 +4,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Mail, Lock, User } from "lucide-react";
 import { useState } from "react";
 import axios from "axios";
+import { useNavigate } from "react-router";
 export default function SignUp() {
   const [username, SetUsername] = useState("");
   const [email, SetEmail] = useState("");
   const [password, SetPassword] = useState("");
-
+  const navigateto = useNavigate();
   const handleSubmit = async (event) => {
     event.preventDefault();
     try {
@@ -88,7 +89,7 @@ export default function SignUp() {
             </Button>
             <p className="text-center text-sm text-white">
               Already have an account?{" "}
-              <a href="#" className="text-yellow-500 hover:underline">
+              <a href="#" className="text-yellow-500 hover:underline" onClick={()=>{navigateto("/signin")}}>
                 Sign In
               </a>
             </p>
