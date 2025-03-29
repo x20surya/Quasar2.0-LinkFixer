@@ -37,6 +37,7 @@ router.post("/addWebsite", auth, async (req, res) => {
       startURL: website.startURL,
     });
     await user.save();
+
     return res.status(201).json(website);
   } catch (error) {
     console.error(error);
@@ -46,15 +47,28 @@ router.post("/addWebsite", auth, async (req, res) => {
 
 router.post("/getStatus", auth, async (req, res) => {
   const { websiteID } = req.body
-  const website = await Website.findById(websiteID)
+  let website
+  try {
+    website = await Website.findById(websiteID)
+  }
+  catch (err) {
+    console.log(err)
+    if(err.message === "Operation `websites.findOne()` buffering timed out after 10000ms") return res.status(400).json({ msg: "Website not found or Server Timed Out" })
+    return res.status(400).json({ msg: err.message })
+  }
+
   const startURL = website.startURL
   const auth = req.body.auth ? req.body.auth : "";
   const max = req.body.pages ? req.body.pages : 3;
-  console.log("Received URL:", startURL);
-  console.log("Received API key:", auth);
-  console.log("Received max pages:", max);
-  const data = scraper({ startURL, authentication : auth, maxPages : max})
+  const data = scraper({ startURL, authentication: auth, maxPages: max })
     .then(data => {
+      console.log(data)
+      const { visitedUrls, brokenLinks, checkedLinks , timeElapsed} = data
+      website.brokenLinks = brokenLinks
+      website.checkedAt = Date.now()
+      website.checkedLinks = checkedLinks
+      website.estimatedTime = (website.estimatedTime +  timeElapsed)/2
+      website.save()
       return res.status(200).json(data);
     })
     .catch(error => {
@@ -65,14 +79,36 @@ router.post("/getStatus", auth, async (req, res) => {
 
 router.get("/getWebsites", auth, async (req, res) => {
   const user = await User.findById(req.user.id).select("-password");
-  let websites = []
-  for(const website of user.websites) {
-    websites.push({url : website.startURL, createdAt : website.createdAt, lastUpdated : website.updatedAt})
-  }
+  console.log("Get Website")
+  
   if (!user) {
     return res.status(404).json({ msg: "User not found" });
   }
-  return res.status(200).json(user.websites);
+  let websites = []
+  for (const website of user.websites) {
+    const web = await Website.findById(website.id)
+    websites.push({id : web._id, url : web.startURL, brokenLinks : web.brokenLinks, checkedLinks : web.checkedLinks, checkedAt : web.checkedAt})
+  }
+  console.log(websites)
+  return res.status(200).json(websites);
 });
+
+router.post("/getStatusURL", auth, async (req, res) => {
+  let { URL } = req.body
+  const auth = req.body.auth ? req.body.auth : "";
+  const max = req.body.pages ? req.body.pages : 3;
+  if (!URL.startsWith("http://") && !URL.startsWith("https://")) {
+    URL = "https://" + URL
+  }
+  const data = scraper({ startURL: URL, authentication: auth, maxPages: max })
+    .then(data => {
+      return res.status(200).json(data);
+    })
+    .catch(error => {
+      console.error("Error during scraping:", error);
+      return res.status(500).json({ msg: "Server error" });
+    });
+})
+
 
 export default router;

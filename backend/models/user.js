@@ -79,6 +79,9 @@ const WebsiteSchema = new mongoose.Schema({
   },
   userID : {
     type: String,
+  },
+  estimatedTime : {
+    type : Number
   }
 });
 
