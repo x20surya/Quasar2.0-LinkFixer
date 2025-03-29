@@ -58,3 +58,9 @@ Response: Returns the current user's data
 URL: POST /api/getWebsites
 Body:none
 Response : bruh
+
+URL : POST /api/deleteWebsite
+Body : {
+id : websiteID to be removed
+}
+Response: either error message or confirmation
