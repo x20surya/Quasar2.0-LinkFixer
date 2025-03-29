@@ -2,6 +2,8 @@ import express from "express";
 import { Website, User } from "../models/user.js";
 import { auth } from "../middleware/auth.js";
 import scraper from "../WebScaper/scraper.js"
+import jwt from 'jsonwebtoken'
+import { sendReport } from "../config/mail.js";
 
 const router = express.Router();
 
@@ -76,7 +78,9 @@ router.post("/getStatus", auth, async (req, res) => {
     if(err.message === "Operation `websites.findOne()` buffering timed out after 10000ms") return res.status(400).json({ msg: "Website not found or Server Timed Out" })
     return res.status(400).json({ msg: err.message })
   }
-
+  if (!website) {
+    return res.status(404).json({ msg: "Website not found" });
+  }
   const startURL = website.startURL
   const auth = req.body.auth ? req.body.auth : "";
   const max = req.body.pages ? req.body.pages : 3;
@@ -87,8 +91,10 @@ router.post("/getStatus", auth, async (req, res) => {
       website.brokenLinks = brokenLinks
       website.checkedAt = Date.now()
       website.checkedLinks = checkedLinks
-      website.estimatedTime = (website.estimatedTime +  timeElapsed)/2
+      if(website.estimatedTime == 0) website.estimatedTime = timeElapsed
+      else website.estimatedTime = (website.estimatedTime +  timeElapsed)/2
       website.save()
+      sendReport({ url: startURL, brokenLinks, email: req.user.email, checkedLinks })
       return res.status(200).json(data);
     })
     .catch(error => {
@@ -113,8 +119,25 @@ router.get("/getWebsites", auth, async (req, res) => {
   return res.status(200).json(websites);
 });
 
+
+router.get("/getAPIkey", auth, async (req, res) => {
+  const id = req.body.user.id
+  const resp = jwt.sign({id}, process.env.JWT_SECRET)
+  return res.status(200).json({
+    'Key' : resp,
+  })
+})
+
 router.post("/getStatusURL", auth, async (req, res) => {
-  let { URL } = req.body
+  let { URL, API_KEY } = req.body
+  jwt.verify(API_KEY, process.env.JWT_SECRET, (err, decoded) => {
+    if (err) {
+      return res.status(401).json({ msg: "Invalid API key" });
+    }
+  });
+  if (!URL) {
+    return res.status(400).json({ msg: "Please provide a start URL" });
+  }
   const auth = req.body.auth ? req.body.auth : "";
   const max = req.body.pages ? req.body.pages : 3;
   if (!URL.startsWith("http://") && !URL.startsWith("https://")) {

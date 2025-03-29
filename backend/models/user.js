@@ -81,7 +81,8 @@ const WebsiteSchema = new mongoose.Schema({
     type: String,
   },
   estimatedTime : {
-    type : Number
+    type : Number,
+    default : 0
   }
 });
 

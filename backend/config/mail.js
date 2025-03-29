@@ -34,3 +34,30 @@ export const sendVerificationEmail = async (email, verificationToken) => {
     }
   };
   
+
+  export  const sendReport = async (data) => {
+    const {url, brokenLinks, email, checkedLinks} = data
+    const mailOptions = {
+      from: process.env.EMAIL_USERNAME,
+      to: email,
+      subject: 'Status report for ' + url,
+      html: `
+        <h1>Broken Links</h1>
+        ${brokenLinks.length > 0 ? brokenLinks.map(link => `<p>${link.link}</p>`).join('') : '<p>No broken links found.</p>'}
+        <h1>Checked Links</h1>
+        ${checkedLinks.length > 0 ? checkedLinks.map(link => `<p>${link.link}</p>`).join('') : '<p>No checked links found.</p>'}
+        <h1>URL</h1>
+        <p>${url}</p>
+        <h1>Checked At</h1>
+        <p>${new Date().toLocaleString()}</p>
+      `,
+    };
+  
+    try {
+      await transporter.sendMail(mailOptions);
+      console.log(`Status email sent to ${email}`);
+    } catch (error) {
+      console.error('Error sending status email:', error);
+      throw new Error('Failed to send status email');
+    }
+  }
