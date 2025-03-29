@@ -32,6 +32,54 @@ const UserSchema = new mongoose.Schema({
     type: Date,
     default: Date.now,
   },
+  updatedAt: {
+    type: Date,
+    default: Date.now,
+  },
+  websites: [
+    {
+      id : {
+        type: String,
+      },
+      startURL: {
+        type: String,
+      },
+    }
+  ],
+});
+
+const WebsiteSchema = new mongoose.Schema({
+  startURL: {
+    type: String,
+    required: true,
+  },
+  checkedAt: {
+    type: Date,
+    default: Date.now,
+  },
+  brokenLinks: {
+    type: Array,
+    default: [
+      {
+        url: String,
+        status: Number,
+        statusText: String,
+      },
+    ],
+  },
+  checkedLinks: {
+    type: Array,
+    default: [
+      {
+        url: String,
+        status: Number,
+        statusText: String,
+      },
+    ],
+  },
+  userID : {
+    type: String,
+  }
 });
 
 UserSchema.pre("save", async function (next) {
@@ -71,4 +119,7 @@ UserSchema.methods.generateVerificationToken = function () {
   return verificationToken;
 };
 
+
+
 export const User = mongoose.model("User", UserSchema);
+export const Website = mongoose.model("Website", WebsiteSchema);
