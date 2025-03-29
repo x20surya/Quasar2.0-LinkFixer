@@ -8,6 +8,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
+import { Link } from "react-router";
 
 function Navbar() {
   return (
@@ -17,22 +18,22 @@ function Navbar() {
           <p className="font-bold text-xl text-orange-500">LOGO.</p>
         </div>
         <ul className="flex flex-col justify-center items-center  bg-gray-400/30 ">
-          <li className=" w-full flex justify-start items-center h-10  gap-x-1 hover:bg-orange-500 border-b-2 border-gray-400/40">
+          <Link className=" w-full flex justify-start items-center h-10  gap-x-1 hover:bg-orange-500 border-b-2 border-gray-400/40">
             <p className="text-white font-semibold  w-full p-2">Home</p>
             <ChevronRight className="stroke-white" />
-          </li>
-          <li className=" w-full flex justify-between items-center h-10  pl-2 gap-x-1 hover:bg-orange-500 border-b-2 border-gray-400/40">
+          </Link>
+          <Link className=" w-full flex justify-between items-center h-10  pl-2 gap-x-1 hover:bg-orange-500 border-b-2 border-gray-400/40">
             <p className="text-white font-semibold ">Dashboard</p>
             <ChevronRight className="stroke-white" />
-          </li>
-          <li className=" w-full flex justify-between items-center h-10  pl-2 gap-x-1 hover:bg-orange-500 border-b-2 border-gray-400/40">
+          </Link>
+          <Link className=" w-full flex justify-between items-center h-10  pl-2 gap-x-1 hover:bg-orange-500 border-b-2 border-gray-400/40">
             <p className="text-white font-semibold ">Profile</p>
             <ChevronRight className="stroke-white" />
-          </li>
-          <li className=" w-full flex justify-between items-center h-10  pl-2 gap-x-1 hover:bg-orange-500 border-b-2 border-gray-400/40">
+          </Link>
+          <Link className=" w-full flex justify-between items-center h-10  pl-2 gap-x-1 hover:bg-orange-500 border-b-2 border-gray-400/40">
             <p className="text-white font-semibold ">Sign In</p>
             <ChevronRight className="stroke-white" />
-          </li>
+          </Link>
         </ul>
       </div>
       <Sheet className="flex w-full justify-center items-start md:hidden">
@@ -43,22 +44,22 @@ function Navbar() {
           <SheetHeader>
             <SheetTitle></SheetTitle>
             <SheetDescription className="mt-10">
-              <li className=" w-full flex justify-start items-center h-10  gap-x-1 hover:bg-orange-500 border-b-2 border-gray-400/40">
-                <p className="text-white font-semibold  w-full p-2">Home</p>
+              <Link to="/" className=" w-full flex justify-start items-center h-10  gap-x-1 hover:bg-orange-500 border-b-2 border-gray-400/40">
+                <p  className="text-white font-semibold  w-full p-2">Home</p>
                 <ChevronRight className="stroke-white" />
-              </li>
-              <li className=" w-full flex justify-between items-center h-10  pl-2 gap-x-1 hover:bg-orange-500 border-b-2 border-gray-400/40">
-                <p className="text-white font-semibold ">Dashboard</p>
+              </Link>
+              <Link to="/dashboard" className=" w-full flex justify-between items-center h-10  pl-2 gap-x-1 hover:bg-orange-500 border-b-2 border-gray-400/40">
+                <p  className="text-white font-semibold ">Dashboard</p>
                 <ChevronRight className="stroke-white" />
-              </li>
-              <li className=" w-full flex justify-between items-center h-10  pl-2 gap-x-1 hover:bg-orange-500 border-b-2 border-gray-400/40">
+              </Link>
+              <Link className=" w-full flex justify-between items-center h-10  pl-2 gap-x-1 hover:bg-orange-500 border-b-2 border-gray-400/40">
                 <p className="text-white font-semibold ">Profile</p>
                 <ChevronRight className="stroke-white" />
-              </li>
-              <li className=" w-full flex justify-between items-center h-10  pl-2 gap-x-1 hover:bg-orange-500 border-b-2 border-gray-400/40">
+              </Link>
+              <Link className=" w-full flex justify-between items-center h-10  pl-2 gap-x-1 hover:bg-orange-500 border-b-2 border-gray-400/40">
                 <p className="text-white font-semibold ">Sign In</p>
                 <ChevronRight className="stroke-white" />
-              </li>
+              </Link>
             </SheetDescription>
           </SheetHeader>
         </SheetContent>

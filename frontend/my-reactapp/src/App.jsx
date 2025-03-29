@@ -23,7 +23,7 @@ const[message,setMessage] = useState("")
     <div className="">
       <Navbar></Navbar>
       <div className='md:pl-40 pl-16  bg-black h-screen w-full'>
-        <div className='p-4 pt-6 h-[90vh] flex flex-col justify-center'>
+        <div className='pl-8 pt-6 h-[90vh] flex flex-col justify-center'>
           <h1 className='text-white font-bold text-5xl'>Find & Fix Broken <span className='text-yellow-500'><br />Links</span> in Seconds</h1>
           <p className='text-white w-4/6'>Improve SEO, enhance user experience, and keep your website error-free with automated link monitoring. <br /><span className='font-bold'>Why Choose LinkFixer?</span></p>
           <div className="flex flex-row justify-start items-center mt-3">

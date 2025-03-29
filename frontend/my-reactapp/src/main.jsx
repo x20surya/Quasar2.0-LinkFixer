@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client'
 import './index.css'
 import SignIn from './Auth/SignIn'
 import SignUp from './Auth/SignUP'
+import Dashboard from './page/dashboard'
 import App from './App.jsx'
 import {
   createBrowserRouter,
@@ -11,6 +12,8 @@ import {
 
 const router = createBrowserRouter([
   {path:"/",element:<App/>},
+  {path:"/dashboard",element:<Dashboard/>},
+
   {path:"/signin",element:<SignIn/>},
   {path:"/signup",element:<SignUp/>}
 ])
