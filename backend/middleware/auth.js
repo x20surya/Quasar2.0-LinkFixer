@@ -17,7 +17,7 @@ export const auth = (req, res, next) => {
 
     if (!decoded.emailVerified) {
       return res
-        .status(403)
+        .status(401)
         .json({ msg: "Email not verified, please verify your email" });
     }
     next();
