@@ -33,6 +33,20 @@ Body:
   "email": "user@example.com"
 }
 
+URL: POST /api/addWebsite
+Body:
+{
+  "startURL" : "https://example.com"
+}
+
+URL: POST /api/getStatus
+Body:
+{
+  "websiteID" : "v43fgwwef",
+  "auth" : "aoubfbau", (-> authentication token given by user for accessing their website <optional>)
+  "pages" : "32" (-> number of pages in website <optional>)
+}
+
 Response: Sends a new verification email
 
 Get User Data
