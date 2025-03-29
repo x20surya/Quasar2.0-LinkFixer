@@ -5,12 +5,15 @@ import cors from "cors";
 import { connectDB } from "./database/connectdb.js";
 import authRoutes from "./routes/auth.js";
 import apiRoutes from "./routes/api.js";
+import { startupSeq } from "./scheduler/logger.js";
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
 app.use(cors());
 app.use(express.json());
+
+// startupSeq()
 
 app.get("/api/message", (req, res) => {
   res.send({ message: "Hello" });

@@ -1,8 +1,8 @@
-import { stat } from "fs";
 import puppeteer from "puppeteer";
 import {URL} from "url";
 
 export  default async function scrape({startURL, authentication, maxPages = 3, API_KEY = ""}) {
+    const startTime = Date.now();
     const browser = await puppeteer.launch({
         headless: "new", // Use the new headless mode
         args: ['--disable-setuid-sandbox', '--no-sandbox', '--disable-features=BlockInsecurePrivateNetworkRequests',
@@ -96,12 +96,10 @@ export  default async function scrape({startURL, authentication, maxPages = 3, A
             }
         }
     }
-    console.log("Broken Links: ", brokenLinks);
-    console.log("Checked Links: ", checkedLinks);
-    console.log("Visited URLs: ", visitedUrls);
 
     await browser.close();
-    return {brokenLinks: Array.from(brokenLinks), visitedUrls: Array.from(visitedUrls), checkedLinks: Array.from(checkedLinks)};
+    const endTime = Date.now();
+    return {brokenLinks: Array.from(brokenLinks), visitedUrls: Array.from(visitedUrls), checkedLinks: Array.from(checkedLinks), timeElapsed : (endTime - startTime)/1000};
 }
 
 // const startURL = "https://example.com/"; 
