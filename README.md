@@ -42,7 +42,7 @@ Body:
 URL: POST /api/getStatus
 Body:
 {
-  "startURL" : "https://example.com",
+  "websiteID" : "v43fgwwef",
   "auth" : "aoubfbau", (-> authentication token given by user for accessing their website <optional>)
   "pages" : "32" (-> number of pages in website <optional>)
 }
