@@ -1,7 +1,7 @@
 import React from "react";
 import Navbar from "@/constants/navbar";
 import { Input } from "@/components/ui/input";
-import { Plus } from "lucide-react";
+import { DeleteIcon, Plus, Trash } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useMyContext } from "@/context/context";
@@ -14,20 +14,16 @@ import {
 } from "@/components/ui/accordion";
 import { useState, useEffect } from "react";
 import axios from "axios";
+import { Spinner } from "@/components/ui/spinner";
 
 function Dashboard() {
   const [link, setlink] = useState("");
   const navigateto = useNavigate();
   const { token } = useMyContext();
   const [list, setlist] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingBin, setIsLoadingBin] = useState(false);
   console.log(token);
-  const checkedLinks = [
-    "http://localhost:5173/dashboard",
-    "http://localhost:5173/dashboard",
-    "http://localhost:5173/dashboard",
-    "http://localhost:5173/dashboard",
-    "http://localhost:5173/dashboard",
-  ];
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -81,6 +77,7 @@ function Dashboard() {
     getWebsites();
   }, []);
   const getStatus = async (websiteID) => {
+    setIsLoading(true);
     const response = await axios.post(
       "http://localhost:5000/api/getStatus",
       {
@@ -93,8 +90,38 @@ function Dashboard() {
       }
     );
     try {
+      if (response.data) {
+        console.log(response.data);
+        setIsLoading(false);
+        getWebsites();
+      }
     } catch (error) {
       console.log("Error :", error);
+      setIsLoading(false);
+    }
+  };
+
+  const deleteWebsite = async (websiteID) => {
+    setIsLoadingBin(true);
+    const response = await axios.post(
+      "http://localhost:5000/api/deleteWebsite",
+      {
+        id: websiteID,
+      },
+      {
+        headers: {
+          "x-auth-token": token,
+        },
+      }
+    );
+
+    try {
+      if (response.data) {
+        getWebsites();
+        setIsLoadingBin(false);
+      }
+    } catch (error) {
+      console.log(error);
     }
   };
 
@@ -149,76 +176,103 @@ function Dashboard() {
         </div>
         <Accordion type="single" collapsible className="pl-4 p-4 content-fit">
           {list.map((item) => (
-            <AccordionItem
-              key={item.id}
-              value={item.id}
-              className="border-none"
-            >
-              <AccordionTrigger className="flex justify-between items-center text-white p-2 bg-gray-400/25 mb-2 pl-4 hover:no-underline">
-                {item.url}{" "}
+            <div className=" flex justify-between" key={item.id}>
+              <AccordionItem value={item.id} className="border-none w-full">
+                <AccordionTrigger className="flex justify-between items-center text-white p-2 bg-gray-400/25 mb-2 pl-4 hover:no-underline">
+                  {item.url}{" "}
+                </AccordionTrigger>
+                <AccordionContent>
+                  <div className="text-white">
+                    <ul className="flex flex-col gap-2">
+                      <Card className="w-full max-w-4xl bg-black border border-white shadow-xl p-2 rounded-md">
+                        <CardHeader className="pt-1 pb-1">
+                          <CardTitle className="text-white text-2xl font-bold text-center">
+                            Checked Links
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="h-28 overflow-y-auto custom-scrollbar p-2">
+                            {item.checkedLinks.length > 0
+                              ? item.checkedLinks.map((link, index) => (
+                                  <div
+                                    key={index}
+                                    className="text-white py-1 flex justify-between items-center shadow-md text-lg border-b border-white last:border-b-0"
+                                  >
+                                    <span className="truncate max-w-[65%]">
+                                      {link.link}
+                                    </span>
+                                    <span className="font-bold">
+                                      status code {link.status} :{" "}
+                                      {link.statusText}
+                                    </span>
+                                  </div>
+                                ))
+                              : ""}
+                          </div>
+                        </CardContent>
+                      </Card>
+
+                      <Card className="w-full max-w-4xl bg-black border border-red-500 shadow-xl p-2 rounded-md">
+                        <CardHeader className="pt-1 pb-1">
+                          <CardTitle className="text-red-400 text-2xl font-bold text-center">
+                            Broken Links
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          {item.brokenLinks
+                            ? item.brokenLinks.map((link, index) => (
+                                <div
+                                  key={index}
+                                  className="text-red-400 py-1 flex justify-between items-center shadow-md text-lg border-b border-red-500 last:border-b-0"
+                                >
+                                  <span className="truncate max-w-[65%]">
+                                    {link.link}
+                                  </span>
+                                  <span className="font-bold">
+                                    status code {link.status} :{" "}
+                                    {link.statusText}
+                                  </span>
+                                </div>
+                              ))
+                            : ""}
+                        </CardContent>
+                      </Card>
+                    </ul>
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+              {isLoading ? (
                 <button
-                  className="bg-orange-500 p-1 hover:bg-orange-500/80 rounded-sm"
+                  className="bg-orange-500 p-1 hover:bg-orange-500/80 rounded-sm h-8 w-sm"
+                  disabled
+                >
+                  <Spinner />
+                </button>
+              ) : (
+                <button
+                  className="bg-orange-500 p-1 hover:bg-orange-500/80 rounded-sm h-8 w-sm"
                   onClick={() => {
                     getStatus(item.id);
                   }}
                 >
                   Get Status
                 </button>
-              </AccordionTrigger>
-              <AccordionContent>
-                <div className="text-white">
-                  <ul className="flex flex-col gap-2">
-                    <Card className="w-full max-w-4xl bg-black border border-white shadow-xl p-2 rounded-md">
-                      <CardHeader className="pt-1 pb-1">
-                        <CardTitle className="text-white text-2xl font-bold text-center">
-                          Checked Links
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="h-28 overflow-y-auto custom-scrollbar p-2">
-                          {checkedLinks.map((link, index) => (
-                            <div
-                              key={index}
-                              className="text-white py-1 flex justify-between items-center shadow-md text-lg border-b border-white last:border-b-0"
-                            >
-                              <span className="truncate max-w-[65%]">
-                                {link}
-                              </span>
-                            </div>
-                          ))}
-                        </div>
-                      </CardContent>
-                    </Card>
-                    {item.checkedLinks.length > 0
-                      ? item.checkedLinks.map((links, index) => (
-                          <Card className="w-full max-w-4xl bg-black border border-red-500 shadow-xl p-2 rounded-md">
-                            <CardHeader className="pt-1 pb-1">
-                              <CardTitle className="text-red-400 text-2xl font-bold text-center">
-                                Broken Links
-                              </CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                              {item.brokenLinks.map((link, index) => (
-                                <div
-                                  key={index}
-                                  className="text-red-400 py-1 flex justify-between items-center shadow-md text-lg border-b border-red-500 last:border-b-0"
-                                >
-                                  <span className="truncate max-w-[65%]">
-                                    {link.url}
-                                  </span>
-                                  <span className="font-bold">
-                                    {link.status} : {link.statusText}
-                                  </span>
-                                </div>
-                              ))}
-                            </CardContent>
-                          </Card>
-                        ))
-                      : ""}
-                  </ul>
-                </div>
-              </AccordionContent>
-            </AccordionItem>
+              )}
+              {isLoadingBin ? (
+                <button className="h-8 w-xsm" disabled>
+                  <Spinner color="white" />
+                </button>
+              ) : (
+                <button
+                  className="h-8 w-xsm"
+                  onClick={() => {
+                    deleteWebsite(item.id);
+                  }}
+                >
+                  <Trash color="white" />
+                </button>
+              )}
+            </div>
           ))}
         </Accordion>
       </div>
