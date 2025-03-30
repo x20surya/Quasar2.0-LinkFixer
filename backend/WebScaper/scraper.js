@@ -78,7 +78,7 @@ export  default async function scrape({startURL, authentication, maxPages = 3, A
                 continue; 
             }
             try {
-                const response = await page.goto(link, { waitUntil: 'networkidle2', timeout: 10000 });
+                const response = await page.goto(link, { waitUntil: 'networkidle2', timeout: 15000 });
                 console.log(`Checking link: ${link}`);
                 console.log(`Response status: ${response.status()}`);
                 console.log(`Response status text: ${response.statusText()}`);
@@ -102,11 +102,11 @@ export  default async function scrape({startURL, authentication, maxPages = 3, A
     return {brokenLinks: Array.from(brokenLinks), visitedUrls: Array.from(visitedUrls), checkedLinks: Array.from(checkedLinks), timeElapsed : (endTime - startTime)/1000};
 }
 
-// const startURL = "https://example.com/"; 
-// scrape({startURL, authentication :"1234567890", maxPages :10000}) 
-//     .then(data => {
-//         console.log("Scraping completed:", data);
-//     })
-//     .catch(error => {
-//         console.error("Error during scraping:", error);
-//     });
+const startURL = "https://iiitranchi.ac.in/"; 
+scrape({startURL, authentication :"1234567890", maxPages :10000}) 
+    .then(data => {
+        console.log("Scraping completed:", data);
+    })
+    .catch(error => {
+        console.error("Error during scraping:", error);
+    });

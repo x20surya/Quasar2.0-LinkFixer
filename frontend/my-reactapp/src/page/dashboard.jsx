@@ -184,7 +184,8 @@ function Dashboard() {
                 </AccordionTrigger>
                 <AccordionContent>
                   <div className="text-white">
-                    <ul className="flex flex-col gap-2">
+                    <ul className="flex gap-2">
+                      <div className="flex flex-col">
                       <Card className="w-full max-w-4xl bg-black border border-white shadow-xl p-2 rounded-md">
                         <CardHeader className="pt-1 pb-1">
                           <CardTitle className="text-white text-2xl font-bold text-center">
@@ -192,7 +193,7 @@ function Dashboard() {
                           </CardTitle>
                         </CardHeader>
                         <CardContent>
-                          <div className="h-28 overflow-y-auto custom-scrollbar p-2">
+                          <div className="h-56 overflow-y-auto custom-scrollbar p-2">
                             {item.checkedLinks.length > 0
                               ? item.checkedLinks.map((link, index) => (
                                   <div
@@ -220,18 +221,18 @@ function Dashboard() {
                           </CardTitle>
                         </CardHeader>
                         <CardContent>
-                          <div className="h-28 overfolw-y-auto custom-scrollbar">
+                          <div className=" h-56 overflow-y-auto custom-scrollbar">
                             {item.brokenLinks
                               ? item.brokenLinks.map((link, index) => (
                                   <div
                                     key={index}
-                                    className="text-red-400 py-1 flex justify-between items-center shadow-md text-lg border-b border-red-500 last:border-b-0 h-28 overflow-y-auto custom-scrollbar p-2"
+                                    className="text-red-400 py-1 flex justify-between items-center shadow-md text-lg border-b border-red-500 last:border-b-0 h-10 custom-scrollbar p-2"
                                   >
                                     <span className="truncate max-w-[65%]">
                                       {link.link}
                                     </span>
                                     <span className="font-bold">
-                                      status code {link.status} :{" "}
+                                      status code {link.status ? link.status : 404} :{" "}
                                       {link.statusText}
                                     </span>
                                   </div>
@@ -240,13 +241,14 @@ function Dashboard() {
                           </div>
                         </CardContent>
                       </Card>
+                      </div>
                       <Card className="w-full max-w-4xl bg-black border border-blue-500 shadow-xl p-2 rounded-md ">
                         <CardHeader className="pt-1 pb-1">
                           <CardTitle className="text-blue-400 text-2xl font-bold text-center">
                             AI Report
                           </CardTitle>
                         </CardHeader>
-                        <CardContent className="h-24 overflow-y-auto custom-scrollbar">
+                        <CardContent className=" h-96 overflow-y-auto custom-scrollbar">
                           <div className="text-white text-md">
                             <Markdown>{item.aiReport}</Markdown>
                           </div>

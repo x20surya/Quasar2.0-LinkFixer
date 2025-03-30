@@ -6,6 +6,7 @@ import jwt from "jsonwebtoken";
 import { sendReport } from "../config/mail.js";
 
 import { GoogleGenAI } from "@google/genai";
+import { addToQueue } from "../scheduler/logger.js";
 
 const ai = new GoogleGenAI({ apiKey: process.env.AI_API_KEY });
 
@@ -47,7 +48,7 @@ router.post("/addWebsite", auth, async (req, res) => {
       startURL: website.startURL,
     });
     await user.save();
-
+    addToQueue(website.id)
     return res.status(201).json(website);
   } catch (error) {
     console.error(error);
@@ -95,9 +96,9 @@ router.post("/getStatus", auth, async (req, res) => {
     return res.status(404).json({ msg: "Website not found" });
   }
   const startURL = website.startURL;
-  const auth = req.body.auth ? req.body.auth : "";
+  const auth = req.body.auth ? req.body.auth : "1234567890";
   const max = req.body.pages ? req.body.pages : 3;
-  const data = scraper({ startURL, authentication: auth, maxPages: max })
+  const data = scraper({ startURL, authentication: auth, maxPages: 100 })
     .then(async (data) => {
       const instructions = `Please analyze the following data and assume you are a web scraper who is reporting a data on each broken link of the website. also rate the web scraper results from 1 to 10. Give me only the Analysis of broken links,  Data:`;
       const prompt = `${instructions}\n${JSON.stringify(data, null, 2)}`
