@@ -129,7 +129,7 @@ function Dashboard() {
   return (
     <div>
       <Navbar></Navbar>
-      <div className="pl-16 md:pl-40 h-screen w-full bg-black">
+      <div className="pl-16 md:pl-40 min-h-screen w-full bg-black">
         <div className="w-full flex flex-col">
           <div className="p-4">
             <h1 className="text-white font-bold text-4xl">DASHBOARD</h1>
@@ -220,33 +220,35 @@ function Dashboard() {
                           </CardTitle>
                         </CardHeader>
                         <CardContent>
-                          {item.brokenLinks
-                            ? item.brokenLinks.map((link, index) => (
-                                <div
-                                  key={index}
-                                  className="text-red-400 py-1 flex justify-between items-center shadow-md text-lg border-b border-red-500 last:border-b-0"
-                                >
-                                  <span className="truncate max-w-[65%]">
-                                    {link.link}
-                                  </span>
-                                  <span className="font-bold">
-                                    status code {link.status} :{" "}
-                                    {link.statusText}
-                                  </span>
-                                </div>
-                              ))
-                            : ""}
+                          <div className="h-28 overfolw-y-auto custom-scrollbar">
+                            {item.brokenLinks
+                              ? item.brokenLinks.map((link, index) => (
+                                  <div
+                                    key={index}
+                                    className="text-red-400 py-1 flex justify-between items-center shadow-md text-lg border-b border-red-500 last:border-b-0 h-28 overflow-y-auto custom-scrollbar p-2"
+                                  >
+                                    <span className="truncate max-w-[65%]">
+                                      {link.link}
+                                    </span>
+                                    <span className="font-bold">
+                                      status code {link.status} :{" "}
+                                      {link.statusText}
+                                    </span>
+                                  </div>
+                                ))
+                              : ""}
+                          </div>
                         </CardContent>
                       </Card>
-                      <Card className="w-full max-w-4xl bg-black border border-blue-500 shadow-xl p-2 rounded-md">
+                      <Card className="w-full max-w-4xl bg-black border border-blue-500 shadow-xl p-2 rounded-md ">
                         <CardHeader className="pt-1 pb-1">
                           <CardTitle className="text-blue-400 text-2xl font-bold text-center">
                             AI Report
                           </CardTitle>
                         </CardHeader>
-                        <CardContent>
+                        <CardContent className="h-24 overflow-y-auto custom-scrollbar">
                           <div className="text-white text-md">
-                          <Markdown>{item.aiReport}</Markdown>
+                            <Markdown>{item.aiReport}</Markdown>
                           </div>
                         </CardContent>
                       </Card>

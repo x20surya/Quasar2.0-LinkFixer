@@ -10,6 +10,9 @@ export default function SignIn() {
   const [email, SetEmail] = useState("");
   const [password, SetPassword] = useState("");
   const { islogin, setislogin } = useMyContext();
+  const{username,setusername} = useMyContext() 
+  const{Email,setEmail} = useMyContext() 
+
   const { token, settoken } = useMyContext();
   const navigateto = useNavigate();
 
@@ -35,6 +38,7 @@ export default function SignIn() {
       if(response.data.user.emailVerified){
           setislogin(true);
           settoken(response.data.token);
+          setusername(response.data.username)
           navigateto("/")
       }else{
         alert("Verify your email!")

@@ -6,15 +6,13 @@ import SignIn from "./Auth/SignIn";
 import SignUp from "./Auth/SignUP";
 import Dashboard from "./page/dashboard";
 import { MyContextProvider } from "./context/context";
-import App from "./App.jsx";
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import ProtectedRoute from "./context/protected";
 const router = createBrowserRouter([
   {
     element: <ProtectedRoute />,
     children: [
-      { path: "/", element: <App /> },
-      { path: "/dashboard", element: <Dashboard /> },
+      { path: "/", element: <Dashboard /> },
     ],
   },
   { path: "/signin", element: <SignIn /> },
