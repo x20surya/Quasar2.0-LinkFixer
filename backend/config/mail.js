@@ -1,6 +1,9 @@
 import nodemailer from "nodemailer";
 import dotenv from "dotenv";
+import markdownit from 'markdown-it'
 dotenv.config();
+
+
 
 const transporter = nodemailer.createTransport({
   service: "gmail",
@@ -36,7 +39,9 @@ export const sendVerificationEmail = async (email, verificationToken) => {
   
 
   export  const sendReport = async (data) => {
+    const md = markdownit()
     const {url, brokenLinks, email, checkedLinks, aiReport} = data
+    const aiResultInHTML = md.render(aiReport)
     const mailOptions = {
       from: process.env.EMAIL_USERNAME,
       to: email,
@@ -45,7 +50,7 @@ export const sendVerificationEmail = async (email, verificationToken) => {
         <h1>Broken Links</h1>
         ${brokenLinks.length > 0 ? brokenLinks.map(link => `<p>${link.link}</p>`).join('') : '<p>No broken links found.</p>'}
         <h2>Analysis by AI</h2>
-        <h3>${aiReport}</h3>
+        ${aiResultInHTML}
         <h1>Checked Links</h1>
         ${checkedLinks.length > 0 ? checkedLinks.map(link => `<p>${link.link}</p>`).join('') : '<p>No checked links found.</p>'}
         <h1>URL</h1>
