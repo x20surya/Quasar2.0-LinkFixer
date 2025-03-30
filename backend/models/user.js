@@ -83,6 +83,9 @@ const WebsiteSchema = new mongoose.Schema({
   estimatedTime : {
     type : Number,
     default : 0
+  },
+  aiReport : {
+    type : String
   }
 });
 

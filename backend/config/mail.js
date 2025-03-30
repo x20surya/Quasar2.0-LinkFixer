@@ -36,7 +36,7 @@ export const sendVerificationEmail = async (email, verificationToken) => {
   
 
   export  const sendReport = async (data) => {
-    const {url, brokenLinks, email, checkedLinks} = data
+    const {url, brokenLinks, email, checkedLinks, aiReport} = data
     const mailOptions = {
       from: process.env.EMAIL_USERNAME,
       to: email,
@@ -44,6 +44,8 @@ export const sendVerificationEmail = async (email, verificationToken) => {
       html: `
         <h1>Broken Links</h1>
         ${brokenLinks.length > 0 ? brokenLinks.map(link => `<p>${link.link}</p>`).join('') : '<p>No broken links found.</p>'}
+        <h2>Analysis by AI</h2>
+        <h3>${aiReport}</h3>
         <h1>Checked Links</h1>
         ${checkedLinks.length > 0 ? checkedLinks.map(link => `<p>${link.link}</p>`).join('') : '<p>No checked links found.</p>'}
         <h1>URL</h1>

@@ -15,6 +15,7 @@ import {
 import { useState, useEffect } from "react";
 import axios from "axios";
 import { Spinner } from "@/components/ui/spinner";
+import Markdown from "react-markdown";
 
 function Dashboard() {
   const [link, setlink] = useState("");
@@ -235,6 +236,18 @@ function Dashboard() {
                                 </div>
                               ))
                             : ""}
+                        </CardContent>
+                      </Card>
+                      <Card className="w-full max-w-4xl bg-black border border-blue-500 shadow-xl p-2 rounded-md">
+                        <CardHeader className="pt-1 pb-1">
+                          <CardTitle className="text-blue-400 text-2xl font-bold text-center">
+                            AI Report
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="text-white text-md">
+                          <Markdown>{item.aiReport}</Markdown>
+                          </div>
                         </CardContent>
                       </Card>
                     </ul>
