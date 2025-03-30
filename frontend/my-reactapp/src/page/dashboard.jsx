@@ -186,61 +186,70 @@ function Dashboard() {
                   <div className="text-white">
                     <ul className="flex gap-2">
                       <div className="flex flex-col">
-                      <Card className="w-full max-w-4xl bg-black border border-white shadow-xl p-2 rounded-md">
-                        <CardHeader className="pt-1 pb-1">
-                          <CardTitle className="text-white text-2xl font-bold text-center">
-                            Checked Links
-                          </CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                          <div className="h-56 overflow-y-auto custom-scrollbar p-2">
-                            {item.checkedLinks.length > 0
-                              ? item.checkedLinks.map((link, index) => (
-                                  <div
-                                    key={index}
-                                    className="text-white py-1 flex justify-between items-center shadow-md text-lg border-b border-white last:border-b-0"
-                                  >
-                                    <span className="truncate max-w-[65%]">
-                                      {link.link}
-                                    </span>
-                                    <span className="font-bold">
-                                      status code {link.status} :{" "}
-                                      {link.statusText}
-                                    </span>
-                                  </div>
-                                ))
-                              : ""}
-                          </div>
-                        </CardContent>
-                      </Card>
+                        <Card className="w-full max-w-4xl bg-black border border-white shadow-xl p-2 rounded-md">
+                          <CardHeader className="pt-1 pb-1">
+                            <CardTitle className="text-white text-2xl font-bold text-center">
+                              Checked Links
+                            </CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <div className="h-56 overflow-y-auto custom-scrollbar p-2">
+                              {item.checkedLinks.length > 0
+                                ? item.checkedLinks.map((link, index) => (
+                                    <div
+                                      key={index}
+                                      className="text-white py-1 flex justify-between items-center shadow-md text-lg border-b border-white last:border-b-0"
+                                    >
+                                      <span className="truncate max-w-[65%]">
+                                        {link.link}
+                                      </span>
+                                      <span className="font-bold">
+                                        status code {link.status} :{" "}
+                                        {link.statusText}
+                                      </span>
+                                    </div>
+                                  ))
+                                : ""}
+                            </div>
+                          </CardContent>
+                        </Card>
 
-                      <Card className="w-full max-w-4xl bg-black border border-red-500 shadow-xl p-2 rounded-md">
-                        <CardHeader className="pt-1 pb-1">
-                          <CardTitle className="text-red-400 text-2xl font-bold text-center">
-                            Broken Links
-                          </CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                          <div className=" h-56 overflow-y-auto custom-scrollbar">
-                            {item.brokenLinks
-                              ? item.brokenLinks.map((link, index) => (
-                                  <div
-                                    key={index}
-                                    className="text-red-400 py-1 flex justify-between items-center shadow-md text-lg border-b border-red-500 last:border-b-0 h-10 custom-scrollbar p-2"
-                                  >
-                                    <span className="truncate max-w-[65%]">
-                                      {link.link}
-                                    </span>
-                                    <span className="font-bold">
-                                      status code {link.status ? link.status : 404} :{" "}
-                                      {link.statusText}
-                                    </span>
-                                  </div>
-                                ))
-                              : ""}
-                          </div>
-                        </CardContent>
-                      </Card>
+                        <Card className="w-full max-w-4xl bg-black border border-red-500 shadow-xl p-2 rounded-md">
+                          <CardHeader className="pt-1 pb-1">
+                            <CardTitle className="text-red-400 text-2xl font-bold text-center">
+                              Broken Links
+                            </CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <div className=" h-56 overflow-y-auto custom-scrollbar">
+                              {item.brokenLinks
+                                ? item.brokenLinks.map((link, index) => (
+                                    <>
+                                      {link.link.startsWith("http") ? (
+                                        <div
+                                          key={index}
+                                          className="text-red-400 py-1 flex justify-between items-center shadow-md text-lg border-b border-red-500 last:border-b-0 h-10 custom-scrollbar p-2"
+                                        >
+                                          <span className="truncate max-w-[65%]">
+                                            {link.link}
+                                          </span>
+                                          <span className="font-bold">
+                                            status code{" "}
+                                            {link.status
+                                              ? link.status
+                                              : " : Connection timed out"}
+                                            {link.statusText}
+                                          </span>
+                                        </div>
+                                      ) : (
+                                        <></>
+                                      )}
+                                    </>
+                                  ))
+                                : ""}
+                            </div>
+                          </CardContent>
+                        </Card>
                       </div>
                       <Card className="w-full max-w-4xl bg-black border border-blue-500 shadow-xl p-2 rounded-md ">
                         <CardHeader className="pt-1 pb-1">

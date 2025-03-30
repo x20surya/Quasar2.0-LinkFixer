@@ -100,7 +100,7 @@ router.post("/getStatus", auth, async (req, res) => {
   const max = req.body.pages ? req.body.pages : 3;
   const data = scraper({ startURL, authentication: auth, maxPages: 100 })
     .then(async (data) => {
-      const instructions = `Please analyze the following data and assume you are a web scraper who is reporting a data on each broken link of the website. also rate the web scraper results from 1 to 10. Give me only the Analysis of broken links,  Data:`;
+      const instructions = `Please analyze the following data and assume you are a web scraper who is reporting a data on each broken link of the website. also rate results from 1 to 10. Give me only the Analysis of broken links,  Data:`;
       const prompt = `${instructions}\n${JSON.stringify(data, null, 2)}`
       const aiReport = await ai.models.generateContent({
         model: "gemini-2.0-flash",

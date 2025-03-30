@@ -34,7 +34,7 @@ export  default async function scrape({startURL, authentication, maxPages = 3, A
     await start.setViewport({ width: 1280, height: 800 });
     await start.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
 
-    const res = await start.goto(startURL, { waitUntil: "networkidle2" });
+    const res = await start.goto(startURL, { waitUntil: "networkidle2", timeout: 60000  });
     if (res.status() !== 200) {
         brokenLinks.add({link: startURL, status: res.status(), statusText: res.statusText()});
     }
@@ -57,7 +57,6 @@ export  default async function scrape({startURL, authentication, maxPages = 3, A
         await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/93.0.4577.82 Safari/537.36');
         const res = await page.goto(currentUrl, { waitUntil: "networkidle2" });
         
-        visitedUrls.add(currentUrl);
         checkedLinks.add({link :currentUrl ,status: res.status(), statusText: res.statusText()});
         try {
             await page.goto(currentUrl, { waitUntil: "networkidle2" });
@@ -68,6 +67,11 @@ export  default async function scrape({startURL, authentication, maxPages = 3, A
         const links = await page.evaluate(() => {
             return Array.from(document.querySelectorAll("a")).map(link => link.href);
         });
+        visitedUrls.add({link : currentUrl, child : links.length});
+        console.log("new page\n\n")
+        console.log(currentUrl)
+        
+
 
         for (const link of links) {
             if (!link || link.trim() === "") {
@@ -78,22 +82,28 @@ export  default async function scrape({startURL, authentication, maxPages = 3, A
                 continue; 
             }
             try {
+                let tr = false
+                for(const checkedLink of checkedLinks){
+                    if(checkedLink.link === link){ tr = true; break;}
+                }
+                if(tr) {console.log("continue"); continue}
                 const response = await page.goto(link, { waitUntil: 'networkidle2', timeout: 15000 });
                 console.log(`Checking link: ${link}`);
                 console.log(`Response status: ${response.status()}`);
                 console.log(`Response status text: ${response.statusText()}`);
                 if (response.status() !== 200) {
-                    brokenLinks.add({link, status: response.status(), statusText: response.statusText()});
+                    brokenLinks.add({link, status: response.status(), statusText: response.statusText(), parent : currentUrl});
                 }
                 if (parsedLink.hostname === baseDomain) {
                     urlsToVisit.push(link);
                 }
-                checkedLinks.add({link, status: response.status(), statusText: response.statusText()});
+                checkedLinks.add({link, status: response.status(), statusText: response.statusText(), parent : currentUrl});
                 
             } catch (error) {
                 console.error(`Error checking link ${link}:`, error.message);
                 brokenLinks.add({link, error: error.message});
             }
+            
         }
     }
 
