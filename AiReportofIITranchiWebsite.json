@@ -1,0 +1,111 @@
+{
+  "report": "Broken Link Analysis - iiitranchi.ac.in",
+  "analysisDate": "2024-01-26",
+  "totalBrokenLinks": 28,
+  "majorIssues": [
+    {
+      "type": "Email Link Failures",
+      "count": 10,
+      "link": "http://email.iiitranchi.ac.in/",
+      "error": "net::ERR_BLOCKED_BY_CLIENT",
+      "description": "The email link is repeatedly blocked by the client, suggesting a configuration issue on the user's end or potentially the server end. This is a persistent and widespread problem.",
+      "impact": "Users unable to access email-related functionalities.",
+      "recommendation": "Investigate client-side settings and email server configuration. Confirm the correctness of URL.",
+      "severity": 9
+    },
+    {
+      "type": "404 Errors",
+      "count": 7,
+      "description": "Links returning 404 'Not Found' errors indicate missing resources.  Several of these are external links from iiitranchi.ac.in, which suggests outdated or incorrect links to external sites.",
+      "examples": [
+        "https://osa-iiitr.herokuapp.com/",
+        "https://www.education.gov.in/en/about-moe",
+        "https://www.jharkhand.gov.in/dhe",
+        "https://www.education.gov.in/en",
+        "https://iiitranchi.ac.in/images/gallery/g18.jpg",
+        "https://www.ntpc.co.in/en/corporate-citizenship/scholarships-programme",
+        "https://iiitranchi.ac.in/docs/downloads/noc_for_internship.pdf"
+      ],
+      "impact": "Broken navigation, inaccessible content.",
+      "recommendation": "Update or remove broken external links.  Check internal paths and file names for accuracy.",
+      "severity": 8
+    },
+    {
+      "type": "SSL Certificate Errors",
+      "count": 4,
+      "link": "https://www.scholarships.gov.in/",
+      "error": "net::ERR_CERT_COMMON_NAME_INVALID",
+      "description": "Links failing due to SSL certificate issues indicate a potential security risk or misconfiguration on the target server.",
+      "impact": "Users cannot securely access scholarship information, raising security concerns.",
+      "recommendation": "Verify the target server's SSL configuration or remove link.",
+      "severity": 7
+    },
+    {
+      "type": "Server Errors",
+      "count": 2,
+      "description": "Links returning 500 'Internal Server Error' suggest problems on the server side. It indicates a failure on the remote server when trying to fulfill the request. This is a major problem. ",
+      "examples": [
+        "https://jeemain.nta.nic.in/webinfo2021/Page/Page?PageId=1&LangId=P",
+        "https://josaa.nic.in/WebInfo/Page/Page?PageId=1&LangId=P"
+      ],
+      "impact": "Website functionality and critical processes may be inaccessible to users. it creates poor user experience.",
+      "recommendation": "Notify server adminstrator of the issue and provide the links for troubleshooting.",
+      "severity": 10
+    },
+    {
+      "type": "Name Resolution Errors",
+      "count": 2,
+      "link": "http://www.nhfdc.nic.in/",
+      "error": "net::ERR_NAME_NOT_RESOLVED",
+      "description": "Links failing to resolve a hostname indicate that the domain name doesn't exist or the DNS server is unavailable.  This is a fundamental problem.",
+      "impact": "Inability to access potentially important information.",
+      "recommendation": "Verify URL correctness and domain registration.",
+      "severity": 8
+    },
+    {
+      "type": "Navigation Timeouts",
+      "count": 2,
+      "description": "Links failing due to navigation timeout indicates that target server didn't send any response in 20 seconds. This may be a remote server fault. ",
+      "examples": [
+        "https://iiitranchi.ac.in/gallery.aspx",
+        "https://www.momascholarship.gov.in/"
+      ],
+      "impact": "Remote server response too late to make connection.",
+      "recommendation": "Check the URL and confirm the address to see if it exists",
+      "severity": 6
+    },
+    {
+      "type": "Null Property Errors",
+      "count": 3,
+      "description": "Links failing due to null property access indicates that website can't return any link status and its failing.",
+      "examples": [
+        "https://iiitranchi.ac.in/courses.aspx#content2",
+        "https://iiitranchi.ac.in/courses.aspx#content3"
+      ],
+      "impact": "Website functionality and critical processes may be inaccessible to users. it creates poor user experience.",
+      "recommendation": "Need to investigate the root cause and need to be fixed by developer.",
+      "severity": 7
+    },
+    {
+      "type": "Connection Refused",
+      "count": 1,
+      "link": "https://cipranchi.nic.in/",
+      "error": "net::ERR_CONNECTION_REFUSED",
+      "description": "It means that server refused the request to connect. This is critical.",
+      "impact": "Remote server response too late to make connection.",
+      "recommendation": "Check the URL and confirm the address to see if it exists",
+      "severity": 8
+    },
+    {
+      "type": "Aborted",
+      "count": 1,
+      "link": "https://iiitranchi.ac.in/docs/downloads/NOC_for_training_placement.docx",
+      "error": "net::ERR_ABORTED",
+      "description": "It means the link request was aborted because resource couldn't be downloaded.",
+      "impact": "Unable to download the file.",
+      "recommendation": "Check the URL and confirm the file exists or not.",
+      "severity": 6
+    }
+  ],
+  "overallRating": 3
+}
