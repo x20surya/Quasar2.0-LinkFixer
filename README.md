@@ -1,66 +1,66 @@
+
 # Quasar2.0-LinkFixer
- 
- ## API ENDPOINTS FOR AUTH
 
- Register User
+## A web-scraping website which shows all the broken links in the website
 
-URL: POST /api/auth/register
-Body:
-{
-  "email": "user@example.com",
-  "password": "password123",
-  "username" : "something"
-}
+Broken links in a website not only result in bad user experience but also result in bad SEO rankings which could directly effect the website's reach. This project helps solve these problems using a web-scraper which checks every page of your website for broken links, this is made for both developers and normal consumers.
 
-Response: Returns JWT token and user data
+## Salient features
+- User authentication with email verification to keep scraped data private
+- Automated scheduled testing feature using "node-cron"
+- Detailed reports sent directly to email to reduce wait time and to save website owner's time 
+- AI report with detailed solutions to each type of error occurring for the various broken links
+- AI generated SEO rating for your website which directly shows how well suited your website is for SEOs
+- RESTAPI interface for developers to access our scraper keeping load on their servers minimal
 
-Login User
+## For running locally
 
-URL: POST /api/auth/login
-Body:
-{
-  "email": "user@example.com",
-  "password": "password123"
-}
+   To run this project locally, download and extract the files, now run the following commands
+   
+    cd frontend/my-reactapp
+    npm install
+    npm run dev
+   
+Now add and customize the .env file of following format in the backend folder,
 
-Response: Returns JWT token and user data
+    MONGO_URI=<mongoDB cluster connect URL>
+    PORT=5000
+    JWT_SECRET=<some password>
+    EMAIL_SECRET=<some password>
+    EMAIL_USERNAME=<Email address for sending mails>
+    EMAIL_PASSWORD=<Email app password required for nodemailer>
+    BACKEND_URL=http://localhost:5000
+    AI_API_KEY=<Gemini AI API key>
 
-Resend Verification Email
+   and finally for backend,
+   
 
-URL: POST /api/auth/resend-verification
-Body:
-{
-  "email": "user@example.com"
-}
+    cd backend
+    npm install
+    npm run dev
+    
+### The website should now be up and running
 
-URL: POST /api/addWebsite
-Body:
-{
-  "startURL" : "https://example.com"
-}
+## We have also implemented a RESTAPI integration
+So that other developers can use our web-scraper using API calls I have generated a RESTAPI interface,
+### To generate an API key 
+make a GET request to the server at endpoint "/api/getAPIkey",
+now access the scrapper using the endpoint "/api/getStatusURL", including the following details in the POST request body
 
-URL: POST /api/getStatus
-Body:
-{
-  "websiteID" : "v43fgwwef",
-  "auth" : "aoubfbau", (-> authentication token given by user for accessing their website <optional>)
-  "pages" : "32" (-> number of pages in website <optional>)
-}
+												   
 
-Response: Sends a new verification email
+    {
+	    URL : <url to be scraped>,
+	    API_KEY : <generated API key>
+	    auth : <to bypass any custom authentication of the website>,
+	    pages : <number of pages to be scraped>
+	}
 
-Get User Data
+this will return data of following format,
 
-URL: GET /api/auth/user
-Headers: x-auth-token: your_jwt_token
-Response: Returns the current user's data
-
-URL: POST /api/getWebsites
-Body:none
-Response : bruh
-
-URL : POST /api/deleteWebsite
-Body : {
-id : websiteID to be removed
-}
-Response: either error message or confirmation
+    {
+	    brokenLinks : [{ link, status, statusText, parent} or {link, error}],
+	    checkedLinks : [{ link, status, statusText, parent}],
+	    visitedURL : [links]
+	    timeElapsed : (in seconds),
+    }
