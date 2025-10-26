@@ -187,4 +187,8 @@ router.post("/getStatusURL", auth, async (req, res) => {
     });
 });
 
+router.get("/health", (req, res) => {
+  res.status(200).json({ msg: "API is healthy" });
+});
+
 export default router;
