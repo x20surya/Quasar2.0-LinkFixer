@@ -1,18 +1,40 @@
 import express from "express";
+import { User } from "../models/user.js";
+import { sendVerificationEmail } from "../utils/mail/mail.js";
+import jwt from "jsonwebtoken";
+import { auth } from "../middleware/auth.js";
+import dotenv from "dotenv";
+
+dotenv.config();
 
 const router = express.Router();
 
-import { User } from "../models/user.js";
-
-import { sendVerificationEmail } from "../config/mail.js";
-import jwt from "jsonwebtoken";
-import { auth } from "../middleware/auth.js";
-
-import dotenv from "dotenv";
-dotenv.config();
-
+// works
 router.post("/register", async (req, res) => {
-  const { username, email, password } = req.body;
+  let { username, email, password } = req.body;
+
+
+  // preliminary validation
+  if (!username || !email || !password) {
+    return res.status(400).json({ error: "Please enter all fields" });
+  }
+  if (typeof (username) !== "string") {
+    return res.status(400).json({ error: "Invalid username" });
+  }
+  if (typeof (email) !== "string" || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return res.status(400).json({ error: "Invalid email" });
+  }
+  if (typeof (password) !== "string") {
+    return res.status(400).json({ error: "Invalid password" });
+  }
+
+  // pre-processing
+  if (password.length < 6) {
+    return res.status(400).json({ error: "Password must be at least 6 characters" });
+  }
+  username = username.trim();
+  email = email.trim().toLowerCase();
+  password = password.trim();
 
   try {
     let user = await User.findOne({ email });
@@ -28,9 +50,9 @@ router.post("/register", async (req, res) => {
 
     const verificationToken = user.generateVerificationToken();
 
-    await user.save();
+    await Promise.all([user.save(), sendVerificationEmail(email, verificationToken)]);
 
-    await sendVerificationEmail(email, verificationToken);
+    // add queue and error handler later
 
     const token = user.generateAuthToken();
 
@@ -44,13 +66,14 @@ router.post("/register", async (req, res) => {
       },
       msg: "Registration successful. Please check your email to verify your account.",
     });
-    
+
   } catch (err) {
     console.error(err.message);
-    res.status(500).send(err.message);
+    res.status(401).json({ error: err.message });
   }
 });
 
+// works
 router.post("/login", async (req, res) => {
   const { email, password } = req.body;
 
@@ -65,28 +88,36 @@ router.post("/login", async (req, res) => {
     }
     const token = user.generateAuthToken();
 
-    res.json({
-      token,
-      user: {
-        id: user._id,
-        email: user.email,
-        emailVerified: user.emailVerified,
-      },
-      msg: user.emailVerified
-        ? "Login successful"
-        : "Login successful. Please verify your email.",
-    });
+    if (!user.emailVerified) {
+      return res.json({
+        success: false,
+        error: "Login unsuccessful. Please verify your email.",
+      }).status(401);
+    } else {
+      return res.json({
+        success: true,
+        token,
+        user: {
+          id: user._id,
+          username: user.username,
+          email: user.email,
+          emailVerified: user.emailVerified,
+        },
+        msg: "Login successful.",
+      });
+    }
   } catch (err) {
     console.error(err.message);
-    res.status(500).send("Server error");
+    res.status(500).json({ error: "Server error" });
   }
 });
 
+// works
 router.get("/verify-email", async (req, res) => {
   const { token } = req.query;
 
   if (!token) {
-    return res.status(400).json({ msg: "No verification token provided" });
+    return res.status(400).json({ error: "Invalid Link" });
   }
 
   try {
@@ -98,6 +129,7 @@ router.get("/verify-email", async (req, res) => {
       return res.status(404).json({ msg: "User not found" });
     }
 
+    // switch to redis logic / otp logic later
     if (
       user.verificationToken !== token ||
       user.verificationTokenExpires < Date.now()
@@ -118,6 +150,7 @@ router.get("/verify-email", async (req, res) => {
     //   token: authToken,
     //   msg: "Email verified successfully",
     // });
+    // TODO add redirect to frontend page later
     return res.send(`
         <html>
           <body>
@@ -128,7 +161,7 @@ router.get("/verify-email", async (req, res) => {
       `);
   } catch (err) {
     console.error(err.message);
-    res.status(500).send("Server error");
+    res.status(500).json({ error: "Server error" });
   }
 });
 
@@ -139,11 +172,11 @@ router.post("/resend-verification", async (req, res) => {
     const user = await User.findOne({ email });
 
     if (!user) {
-      return res.status(404).json({ msg: "User not found" });
+      return res.status(404).json({ error: "User not found" });
     }
 
     if (user.emailVerified) {
-      return res.status(400).json({ msg: "Email already verified" });
+      return res.status(400).json({ error: "Email already verified" });
     }
 
     const verificationToken = user.generateVerificationToken();
@@ -151,10 +184,10 @@ router.post("/resend-verification", async (req, res) => {
 
     await sendVerificationEmail(email, verificationToken);
 
-    res.json({ msg: "Verification email resent" });
+    res.status(200).json({ msg: "Verification email resent" });
   } catch (err) {
     console.error(err.message);
-    res.status(500).send("Server error");
+    res.status(500).json({ error: "Server error" });
   }
 });
 
@@ -164,7 +197,7 @@ router.get("/user", auth, async (req, res) => {
     res.json(user);
   } catch (err) {
     console.error(err.message);
-    res.status(500).send("Server error");
+    res.status(500).json({ error: "Server error" });
   }
 });
 
