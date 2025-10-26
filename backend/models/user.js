@@ -111,8 +111,7 @@ UserSchema.methods.generateAuthToken = function () {
 
 UserSchema.methods.comparePassword = async function (password) {
   return await bcrypt.compare(password, this.password);
-};
-
+};  
 UserSchema.methods.generateVerificationToken = function () {
   const verificationToken = jwt.sign(
     { id: this._id },
