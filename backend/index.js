@@ -5,7 +5,7 @@ import cors from "cors";
 import { connectDB } from "./database/connectdb.js";
 import authRoutes from "./routes/auth.js";
 import apiRoutes from "./routes/api.js";
-import { startupSeq } from "./scheduler/logger.js";
+import { startupSeq } from "./utils/scheduler/logger.js";
 
 const app = express();
 const PORT = process.env.PORT || 5000;

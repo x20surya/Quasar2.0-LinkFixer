@@ -1,5 +1,5 @@
-import { Website } from "../models/user.js"
-import scraper from "../WebScaper/scraper.js"
+import { Website } from "../../models/user.js"
+import scraper from "../webscraper/scraper.js"
 
 let queue = []
 

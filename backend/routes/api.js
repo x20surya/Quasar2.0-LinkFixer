@@ -1,12 +1,12 @@
 import express from "express";
 import { Website, User } from "../models/user.js";
 import { auth } from "../middleware/auth.js";
-import scraper from "../WebScaper/scraper.js";
+import scraper from "../utils/webscraper/scraper.js";
 import jwt from "jsonwebtoken";
 import { sendReport } from "../config/mail.js";
 
 import { GoogleGenAI } from "@google/genai";
-import { addToQueue } from "../scheduler/logger.js";
+import { addToQueue } from "../utils/scheduler/logger.js";
 
 const ai = new GoogleGenAI({ apiKey: process.env.AI_API_KEY });
 
@@ -106,8 +106,6 @@ router.post("/getStatus", auth, async (req, res) => {
         model: "gemini-2.0-flash",
         contents: prompt
       });
-      console.log(aiReport.text)
-      console.log(data);
       const { visitedUrls, brokenLinks, checkedLinks, timeElapsed } = data;
       website.brokenLinks = brokenLinks;
       website.checkedAt = Date.now();
@@ -152,39 +150,6 @@ router.get("/getWebsites", auth, async (req, res) => {
   }
   console.log(websites);
   return res.status(200).json(websites);
-});
-
-router.get("/getAPIkey", auth, async (req, res) => {
-  const id = req.body.user.id;
-  const resp = jwt.sign({ id }, process.env.JWT_SECRET);
-  return res.status(200).json({
-    Key: resp,
-  });
-});
-
-router.post("/getStatusURL", auth, async (req, res) => {
-  let { URL, API_KEY } = req.body;
-  jwt.verify(API_KEY, process.env.JWT_SECRET, (err, decoded) => {
-    if (err) {
-      return res.status(401).json({ msg: "Invalid API key" });
-    }
-  });
-  if (!URL) {
-    return res.status(400).json({ msg: "Please provide a start URL" });
-  }
-  const auth = req.body.auth ? req.body.auth : "";
-  const max = req.body.pages ? req.body.pages : 3;
-  if (!URL.startsWith("http://") && !URL.startsWith("https://")) {
-    URL = "https://" + URL;
-  }
-  const data = scraper({ startURL: URL, authentication: auth, maxPages: max })
-    .then((data) => {
-      return res.status(200).json(data);
-    })
-    .catch((error) => {
-      console.error("Error during scraping:", error);
-      return res.status(500).json({ msg: "Server error" });
-    });
 });
 
 router.get("/health", (req, res) => {
