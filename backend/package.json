@@ -13,6 +13,7 @@
   "description": "",
   "dependencies": {
     "@google/genai": "^0.7.0",
+    "@upstash/redis": "^1.35.6",
     "amqplib": "^0.10.9",
     "bcryptjs": "^3.0.2",
     "body-parser": "^2.2.0",
@@ -25,7 +26,8 @@
     "mongoose": "^8.13.1",
     "node-cron": "^3.0.3",
     "nodemailer": "^6.10.0",
-    "puppeteer": "^24.4.0"
+    "puppeteer": "^24.4.0",
+    "uuid": "^13.0.0"
   },
   "devDependencies": {
     "nodemon": "^3.1.10"
