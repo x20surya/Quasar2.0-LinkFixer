@@ -10,6 +10,7 @@ export default function enqueue(queue_name, data) {
         // defined in docker-compose
         console.error("Fatal ERROR ::\nDestination : utils/scheduler/enqueue :: \nRABBITMQ_URL missing")
     }
+    console.log(rabbitURL)
     ampq.connect(rabbitURL, (error0, connection) => {
         if (error0) {
             console.error("Fatal ERROR ::\nDestination : utils/scheduler/enqueue :: \n error0 trigerred")
