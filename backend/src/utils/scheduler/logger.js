@@ -1,6 +1,4 @@
 import { Website } from "../../models/user.js"
-import scraper from "../webscraper/scraper.js"
-
 let queue = []
 
 export async function addToQueue(id) {
