@@ -7,7 +7,7 @@ import apiRoutes from "./src/routes/api.js";
 import { startupSeq } from "./src/utils/scheduler/logger.js";
 
 dotenv.config();
-const app = express();
+export const app = express();
 const PORT = process.env.PORT || 5000;
 
 app.use(cors());
