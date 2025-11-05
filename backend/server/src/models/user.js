@@ -2,7 +2,6 @@ import mongoose from "mongoose";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { v4 as uuidv4 } from 'uuid';
-
 import dotenv from "dotenv";
 dotenv.config();
 
@@ -49,46 +48,57 @@ const UserSchema = new mongoose.Schema({
   ],
 });
 
+
 const WebsiteSchema = new mongoose.Schema({
-  startURL: {
-    type: String,
-    required: true,
-  },
-  checkedAt: {
-    type: Date,
-    default: Date.now,
-  },
-  brokenLinks: {
-    type: Array,
-    default: [
-      {
-        url: String,
-        status: Number,
-        statusText: String,
-      },
-    ],
-  },
-  checkedLinks: {
-    type: Array,
-    default: [
-      {
-        url: String,
-        status: Number,
-        statusText: String,
-      },
-    ],
-  },
-  userID: {
-    type: String,
-  },
-  estimatedTime: {
-    type: Number,
-    default: 0
-  },
-  aiReport: {
-    type: String
-  }
-});
+    domain: {
+        type: String,
+        required: true,
+    },
+    checkedAt: {
+        type: Date,
+        default: Date.now,
+    },
+    brokenLinks: {
+        type: Array,
+        default: [],
+    },
+    checkedLinks: {
+        type: Array,
+        default: [],
+    },
+    sitemapLinks: {
+        type: Array,
+        default : []
+    },
+    userID: {
+        type: String,
+    },
+    estimatedTimeLow : {
+        priority_low : {
+            type : Number,
+            default : -1
+        },
+        priority_mid : {
+            type : Number,
+            default : -1
+        },
+        priority_high : {
+            type : Number,
+            default : -1
+        }
+    },
+    aiReport: {
+        type: String
+    },
+    updatedAt: {
+        type: Date,
+        default: Date.now,
+    },
+    createdAt: {
+        type: Date,
+        default: Date.now,
+    },
+}, { timestamps: true });
 
 UserSchema.pre("save", async function (next) {
   if (!this.isModified("password")) return next();

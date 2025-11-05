@@ -1,20 +1,57 @@
 services:
   backend:
-    build: 
-      context: .
-      dockerfile: ./server/Dockerfile
-    container_name: "backend"
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: backend
     volumes:
-      - .:/app
-      - /app/node_modules
+      - ./server:/src
+      - /src/node_modules
     ports:
       - "5000:5000"
     depends_on:
       - rabbitmq
+    environment:
+      - NODE_ENV=production
+      - RABBITMQ_URL=amqp://rabbitmq:5672
+
   rabbitmq:
-    image: "rabbitmq:4-management"
-    container_name: "rabbitmq"
+    image: rabbitmq:4-management
+    container_name: rabbitmq
     ports:
       - "15672:15672"
       - "5672:5672"
-  
+
+  worker_low:
+    build:
+      context: ./workers
+      dockerfile: Dockerfile
+    volumes:
+      - ./workers:/app
+      - /app/node_modules
+    image: linkfixer-worker
+    container_name: worker_low
+    environment:
+      - QUEUE=priority_low
+      - NEXT_QUEUE=priority_high
+      - INSTANCES=1
+      - LINK_LIMIT=100
+      - AUTHORIZATION_TOKEN=1234
+      - RABBITMQ_URL=amqp://rabbitmq:5672
+    depends_on:
+      - rabbitmq
+    restart: unless-stopped
+
+  worker_high:
+    image: linkfixer-worker
+    container_name: worker_high
+    environment:
+      - QUEUE=priority_high
+      - NEXT_QUEUE=none
+      - INSTANCES=2
+      - LINK_LIMIT=300
+      - AUTHORIZATION_TOKEN=1234
+      - RABBITMQ_URL=amqp://rabbitmq:5672
+    depends_on:
+      - rabbitmq
+    restart: unless-stopped
