@@ -1,9 +1,6 @@
 
 # Quasar2.0-LinkFixer
 
-## Achievements
-- Won 2nd Runner-up at the Quasar 2.0 IIIT Ranchi Hackathon.
-
 ## A web-scraping website which shows all the broken links in the website
 
 Broken links in a website not only result in bad user experience but also result in bad SEO rankings which could directly effect the website's reach. This project helps solve these problems using a web-scraper which checks every page of your website for broken links, this is made for both developers and normal consumers.
@@ -19,13 +16,13 @@ Broken links in a website not only result in bad user experience but also result
 ## For running locally
 
    To run this project locally, download and extract the files, now run the following commands
-```  
+   
     cd frontend/my-reactapp
     npm install
     npm run dev
-```
+   
 Now add and customize the .env file of following format in the backend folder,
-```
+
     MONGO_URI=<mongoDB cluster connect URL>
     PORT=5000
     JWT_SECRET=<some password>
@@ -34,13 +31,13 @@ Now add and customize the .env file of following format in the backend folder,
     EMAIL_PASSWORD=<Email app password required for nodemailer>
     BACKEND_URL=http://localhost:5000
     AI_API_KEY=<Gemini AI API key>
-```
-   To run backend,
 
-```
-    cd ./backend
-    docker-compose up
-```
+   and finally for backend,
+   
+
+    cd backend
+    npm install
+    npm run dev
     
 ### The website should now be up and running
 
