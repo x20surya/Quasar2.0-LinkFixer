@@ -1,0 +1,144 @@
+import mongoose from "mongoose";
+import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
+import { v4 as uuidv4 } from 'uuid';
+import dotenv from "dotenv";
+dotenv.config();
+
+const UserSchema = new mongoose.Schema({
+  username: {
+    type: String,
+    required: true,
+  },
+  email: {
+    type: String,
+    required: true,
+    unique: true,
+    trim: true,
+    lowercase: true,
+  },
+  password: {
+    type: String,
+    required: true,
+    minlength: 6,
+  },
+  emailVerified: {
+    type: Boolean,
+    default: false,
+  },
+  verificationToken: String,
+  verificationTokenExpires: Date,
+  createdAt: {
+    type: Date,
+    default: Date.now,
+  },
+  updatedAt: {
+    type: Date,
+    default: Date.now,
+  },
+  websites: [
+    {
+      id: {
+        type: String,
+      },
+      startURL: {
+        type: String,
+      },
+    }
+  ],
+});
+
+
+const WebsiteSchema = new mongoose.Schema({
+    domain: {
+        type: String,
+        required: true,
+    },
+    checkedAt: {
+        type: Date,
+        default: Date.now,
+    },
+    brokenLinks: {
+        type: Array,
+        default: [],
+    },
+    checkedLinks: {
+        type: Array,
+        default: [],
+    },
+    sitemapLinks: {
+        type: Array,
+        default : []
+    },
+    userID: {
+        type: String,
+    },
+    estimatedTimeLow : {
+        priority_low : {
+            type : Number,
+            default : -1
+        },
+        priority_mid : {
+            type : Number,
+            default : -1
+        },
+        priority_high : {
+            type : Number,
+            default : -1
+        }
+    },
+    aiReport: {
+        type: String
+    },
+    updatedAt: {
+        type: Date,
+        default: Date.now,
+    },
+    createdAt: {
+        type: Date,
+        default: Date.now,
+    },
+}, { timestamps: true });
+
+UserSchema.pre("save", async function (next) {
+  if (!this.isModified("password")) return next();
+
+  try {
+    const salt = await bcrypt.genSalt(10);
+    this.password = await bcrypt.hash(this.password, salt);
+    next();
+  } catch (error) {
+    next(error);
+  }
+});
+
+UserSchema.methods.generateAuthToken = function () {
+  return jwt.sign(
+    { id: this._id, email: this.email, emailVerified: this.emailVerified },
+    process.env.JWT_SECRET,
+    { expiresIn: "1d" }
+  );
+};
+
+UserSchema.methods.comparePassword = async function (password) {
+  return await bcrypt.compare(password, this.password);
+};
+
+UserSchema.methods.generateVerificationToken = function () {
+  const jti = uuidv4();
+  const verificationToken = jwt.sign(
+    { id: this._id, email: this.email, iss: "link-fixer", jti },
+    process.env.EMAIL_SECRET,
+    { expiresIn: "24h" }
+  );
+
+  this.verificationToken = verificationToken;
+  this.verificationTokenExpires = Date.now() + 24 * 60 * 60 * 1000; // 24 hours
+
+  return verificationToken;
+};
+
+
+
+export const User = mongoose.model("User", UserSchema);
+export const Website = mongoose.model("Website", WebsiteSchema);
