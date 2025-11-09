@@ -6,10 +6,14 @@ let isActive = false
 
 
 export function setQueueName(queueName) {
+    if (isActive) {
+        return false
+    }
     currentQueue = queueName
+    return true
 }
 
-export function isInstanceRunning(){
+export function isInstanceRunning() {
     return isActive
 }
 
