@@ -1,21 +1,65 @@
 import puppeteer from "puppeteer";
 import { URL } from "url";
+import amqp from "amqplib"
+import { Redis } from "@upstash/redis"
+import dotenv from "dotenv";
 
-let currentQueue = null
+dotenv.config()
+
+/**
+ * Redis Variables :: 
+ */
 let isActive = false
+const RabbitMQ_URL = process.env.RABBITMQ_URL
+const Redis_URL = process.env.REDIS_URL
+const Redis_Token = process.env.REDIS_TOKEN
+const ID = process.env.INSTANCE_ID
 
+if (!ID) {
+    console.error("Instance ID not provided")
+    process.exit(1)
+}
 
-export function setQueueName(queueName) {
+console.log("Scraper ID ::: ", ID)
+if (!RabbitMQ_URL || !Redis_URL || !Redis_Token) {
+    console.error("Essential Environment Variables are not provided")
+    process.exit(1)
+}
+
+let connection, redis, channel, subscriber
+try {
+    connection = await amqp.connect(RabbitMQ_URL)
+    channel = await connection.createChannel()
+
+    redis = new Redis({
+        url: Redis_URL,
+        token: Redis_Token
+    })
+
+    subscriber = new Redis({
+        url: Redis_URL,
+        token: Redis_Token
+    })
+}
+catch (err) {
+    console.log(err)
+    throw err
+}
+
+await subscriber.subscribe(`${ID}_domain`, (domainInfo) => {
     if (isActive) {
-        return false
+        console.log("Error :: Another Domain assigned before completion\nAssigned :: " + domain)
+        return;
     }
-    currentQueue = queueName
-    return true
-}
-
-export function isInstanceRunning() {
-    return isActive
-}
+    isActive = true
+    console.log("Domain Assigned :: " , domainInfo)
+    // call domain
+    const { domain, linkQueue, authentication, maxPages, limit } = JSON.parse(domainInfo)
+    startConsumers(domain, linkQueue, authentication, maxPages, limit).catch((err) => {
+        console.error("Error in starting Consumer for Domain :: " + domain + "\nError :: " + err)
+    })
+})
+console.log("Subscriber Running at ", `${ID}_domain`)
 
 async function checkLink(link, page) {
     try {
@@ -23,7 +67,7 @@ async function checkLink(link, page) {
             const response = await fetch(link, { method: "GET" });
             if (response.ok) {
                 return {
-                    type: "file",
+                    content: "file",
                     url: link,
                     status: response.status,
                     statusText: response.statusText,
@@ -38,8 +82,8 @@ async function checkLink(link, page) {
         });
 
         const result = {
-            finalURL: res.url(),
-            type: "site",
+            redirectedTo: res.url(),
+            content: "site",
             url: link,
             status: res.status(),
             statusText: res.statusText(),
@@ -48,9 +92,9 @@ async function checkLink(link, page) {
         return result;
     } catch (err) {
         console.log("checkLink Failed Link : ", link)
-        console.log("checkLink Failed Error : ", err)
+        // console.log("checkLink Failed Error : ", err)
         return {
-            type: "site",
+            content: "site",
             url: link,
             status: 0,
             statusText: err.message,
@@ -85,22 +129,18 @@ async function visitLink(link, page, baseDomain) {
         if (!res.ok) {
             console.log("Link failed : ", link)
         }
-        return { ...res, form: "external" };
+        return { ...res, type: "external" };
     }
     if (!res.ok) {
         console.log("Link failed : ", link)
-        return { ...res, form: "internal" }
+        return { ...res, type: "internal" }
     }
 
-    if (res.type === "file") {
-        return { ...res, form: "internal" }
+    if (res.content === "file") {
+        return { ...res, type: "internal" }
     }
-
-
     // stop futher examination of external links
-
     console.log("Internal Link : ", link)
-
 
     // continue to find links within the internal pages
     // finding the links present in the page
@@ -126,25 +166,33 @@ async function visitLink(link, page, baseDomain) {
         urlsToVisit.push(link)
     }
     console.log("URL in page : " + urlsToVisit.length)
-    return { ...res, urlsToVisit, form: "internal" };
+    return { ...res, urlsToVisit, type: "internal" };
 }
 
-export default async function scrape({
-    startURL,
-    authentication,
-    maxDepth = 3,
-    maxParallel = 1,
-}) {
-    console.log("--------------------scraper has started-----------------------------")
-    const startTime = Date.now();
+async function startConsumers(domain, linkQueue, authentication, maxPages = 3, limit = undefined) {
 
-    if (!currentQueue) {
-        console.log("Queue Name not set")
-        return {
-            error: "Queue Name not set"
-        }
+    console.log(`Starting Consumer for Domain :: ${domain}, Queue :: ${linkQueue}, MaxPages :: ${maxPages}, Limit :: ${limit}\n\n`)
+
+    const startTime = Date.now()
+
+    const checkedLinksKey = `${domain}_checkedLinks`
+    await redis.del(checkedLinksKey)
+    await redis.set(`${ID}_status`, 1)
+    await redis.del(`${domain}_results`)
+    if (!linkQueue.includes("_links")) {
+        throw new Error("Invalid Queue name")
     }
 
+    try {
+        // the link should be asserted by the manager
+        await channel.checkQueue(linkQueue)
+    } catch (err) {
+        console.log("Error Ocurred, Queue does not exist in RabbitMQ server\nQueue :: " + linkQueue)
+        // throw new Error("Error Ocurred, Queue does not exist in RabbitMQ server\nQueue :: " + linkQueue)
+    }
+    channel.prefetch(maxPages)
+
+    // initializing browser and creating initial pages
     const browser = await puppeteer.launch({
         headless: "new",
         args: [
@@ -155,121 +203,193 @@ export default async function scrape({
             "--disable-http2"
         ],
     });
-    console.log("browser launched")
+    const pages = await Promise.all(Array(maxPages).fill().map(() => createPage(browser, authentication)))
 
-    const startUrlParsed = new URL(startURL);
-    const baseDomain = startUrlParsed.hostname;
 
-    const urlsToVisit = [startURL];
 
-    const brokenLinks = new Set()
+    let setPauseTimeout = 0
+    let isPaused = false
+    let pauseStatusTimeout = 0
+    let hasCleaned = false
+
     const checkedLinks = new Set()
+    let baseDomain = undefined
 
-    const brokenLinkReports = new Map();
-    const checkedLinkReports = new Map();
-    const parents = new Map()
-
-    const pages = await Promise.all(Array(maxParallel).fill().map(() => createPage(browser, authentication)))
-
-    console.log("Initial Pages : ", urlsToVisit)
-
-    while (urlsToVisit.length > 0) {
-        console.log("Enter while")
-        let visitLinkPromises = []
-
-        for (let i = 0; i < pages.length && urlsToVisit.length > 0; i++) {
-            let currentUrl = urlsToVisit.pop();
-            // console.log("currentUrl : ", currentUrl)
-            while (checkedLinks.has(currentUrl)) {
-                // console.log("already checked")
-                currentUrl = urlsToVisit.pop()
-                // console.log("currentUrl : ", currentUrl)
-                if (urlsToVisit.length <= 0) {
-                    console.log("::::::::::::::::::::::::::::::::::::: Empty  ::::::::::::::::::::::::::::::::::::")
-                    break;
-                }
-            }
-            if (!currentUrl) break
-            if (checkedLinks.has(currentUrl)) {
-                // console.log("already checked")
-                break;
-            }
-            visitLinkPromises.push(
-                visitLink(currentUrl, pages[i], baseDomain)
-            )
+    async function cleanup(consumerTag) {
+        if (hasCleaned) return
+        hasCleaned = true
+        clearTimeout(setPauseTimeout);
+        clearTimeout(pauseStatusTimeout);
+        await redis.set(`${ID}_status`, 0)
+        await channel.cancel(consumerTag)
+        await browser.close();
+        const endTime = Date.now();
+        const completionTime = (endTime - startTime) / 1000
+        const tempTime = await redis.get(`${domain}_duration`)
+        if (tempTime === null) {
+            await redis.set(`${domain}_duration`, completionTime)
+        } else {
+            await redis.set(`${domain}_duration`, (completionTime + tempTime) / 2)
         }
+        isActive = false
+        console.log(`Completed Scraping for Domain :: ${domain} in ${completionTime} seconds`)
 
-        console.log("Parallel used : " + visitLinkPromises.length)
-
-        const res = await Promise.allSettled(visitLinkPromises)
-
-        console.log("Promise resolution : " + res)
-
-        for (const visitLink of res) {
-            if (visitLink.status === "fulfilled") {
-                const result = visitLink.value
-
-                if (!result.ok) {
-                    brokenLinks.add(result.url)
-                    brokenLinkReports.set(result.url, result)
-                }
-
-                checkedLinks.add(result.url)
-                checkedLinkReports.set(result.url, result)
-
-                // if valid links present in the link visited
-                if (result.urlsToVisit) {
-
-                    for (const url of result.urlsToVisit) {
-                        if (!checkedLinks.has(url)) {
-                            urlsToVisit.push(url)
-                            console.log("pushes " + url)
-                        }
-                        let currParents = parents.get(url)
-                        if (!currParents) currParents = []
-                        parents.set(url, [...currParents, result.url])
-                    }
-                }
-            } else {
-                console.log(res)
-                console.error("visitlink promise rejected")
-                process.exit(1)
-            }
-        }
-        console.log("links remaining : " + urlsToVisit.length)
-        console.log("checked links : " + checkedLinks.size)
-        console.log("broken links : " + brokenLinks.size)
     }
 
-    await browser.close();
-    const endTime = Date.now();
-    return {
-        brokenLinks: brokenLinkReports,
-        checkedLinks: checkedLinkReports,
-        parents,
-        timeElapsed: (endTime - startTime) / 1000,
-    };
-}
+    async function setPauseBrowser(consumerTag) {
+        const key = `${domain}_pause_status`
+        if (!isPaused) {
+            console.log("Pausing Browser for Domain :: " + domain)
+            isPaused = true
+            const pausedSemaphore = await redis.decr(key)
+            if (pausedSemaphore <= 0) {
+                // handle completion
+                await cleanup(consumerTag)
+            }
+        }
+        pauseStatusTimeout = setTimeout(() => { checkPauseStatus(consumerTag) }, 10000)
+    }
 
-// const link = "https://iiitranchi.ac.in"
-// scrape({
-//     startURL: link,
-//     maxParallel: 5,
-// }).then((res) => {
-//     const output = {
-//         summary: {
-//             totalChecked: res.checkedLinks.size,
-//             totalBroken: res.brokenLinks.size,
-//             timeElapsed: res.timeElapsed
-//         },
-//         brokenLinks: Array.from(res.brokenLinks.entries()).map(([url, data]) => data),
-//         checkedLinks: Array.from(res.checkedLinks.entries()).map(([url, data]) => data),
-//         parents: Array.from(res.parents.entries()).map(([url, parentUrls]) => ({
-//             url,
-//             foundOn: parentUrls
-//         }))
-//     };
-//     console.log(`Scraped ${output.summary.totalChecked} links in ${output.summary.timeElapsed}s`);
-//     console.log(`Found ${output.summary.totalBroken} broken links`);
-//     console.log('Results saved to scrape-results.json');
-// });
+    async function checkPauseStatus(consumerTag) {
+        const key = `${domain}_pause_status`
+        if (!isActive) return
+        const pausedSemaphore = Number(await redis.get(key))
+        if (pausedSemaphore <= 0) {
+            await cleanup(consumerTag)
+        }
+        clearTimeout(pauseStatusTimeout)
+        pauseStatusTimeout = setTimeout(() => { checkPauseStatus(consumerTag) }, 10000)
+    }
+
+    const fetchPage = async () => {
+        const key = `${domain}_pause_status`
+        if (pages.length === 0) {
+            throw new Error("Unexpected :: Pages more than maxPages fetched")
+        } else {
+            if (isPaused) {
+                isPaused = false
+                await redis.incr(key)
+            }
+            clearTimeout(setPauseTimeout)
+            clearTimeout(pauseStatusTimeout)
+            return pages.pop()
+        }
+    }
+    const completedPage = (page, consumerTag) => {
+        if (pages.length >= maxPages) {
+            throw new Error("This can never happen, hopefully")
+        }
+        console.log("Page Completed and returned to pool")
+        pages.push(page)
+        clearTimeout(setPauseTimeout)
+        setPauseTimeout = setTimeout(() => { setPauseBrowser(consumerTag) }, 10000)
+    }
+    const { consumerTag } = await channel.consume(linkQueue, async (msg) => {
+
+        try {
+            const page = await fetchPage()
+
+
+            const data = JSON.parse(msg.content.toString())
+            if (data.link === undefined || data.depth === undefined) {
+                console.error("ERROR :: Invalid type of data found in LinkChannel in Puppeteer")
+                console.log("DATA :: ", data)
+                completedPage(page, consumerTag)
+                channel.ack(msg)
+                return
+            }
+            console.log(`Processing Link :: ${data.link} at Depth :: ${data.depth}`)
+            if (checkedLinks.has(data.link)) {
+                console.log("Link already checked NO REDIS :: " + data.link)
+                completedPage(page, consumerTag)
+                channel.ack(msg);
+                return;
+            }
+            if (await redis.sismember(checkedLinksKey, data.link)) {
+                checkedLinks.add(data.link)
+                console.log("Link already checked :: " + data.link)
+                completedPage(page, consumerTag)
+                channel.ack(msg);
+                return;
+            }
+            console.log("Visiting Link :: " + data.link)
+            let linkInfo
+            try {
+                if (baseDomain === undefined) {
+                    const parsedURL = new URL(data.link)
+                    baseDomain = parsedURL.hostname
+                    console.log("Base Domain Set to :: " + baseDomain)
+                }
+                linkInfo = await visitLink(data.link, page, baseDomain)
+
+                // console.log("Link Info Recieved for :: " + data.link)
+            } catch (err) {
+                console.error("ERROR IN VISITING LINK :: " + err)
+                await page.close();
+                pages.push(await createPage(browser, authentication));
+                channel.ack(msg)
+                return
+            }
+            const { urlsToVisit, redirectedTo, status, url, content, statusText } = linkInfo
+
+            let linkData = {}
+
+            if (url !== undefined) {
+                linkData.url = url
+            }
+            if (redirectedTo !== undefined) {
+                linkData.redirectedTo = redirectedTo
+            }
+            if (content !== undefined) {
+                linkData.content = content
+            }
+            if (status !== undefined) {
+                linkData.status = status
+            }
+            if (statusText !== undefined) {
+                linkData.statusText = statusText
+            }
+            linkData.timestamp = Date.now()
+
+            await redis.sadd(checkedLinksKey, url)
+            const existingResults = await redis.get(`${domain}_results`);
+            // console.log("Before JSON Parse Existing Results :: ", linkData, " Data ::: ", existingResults)
+            const results = existingResults ?? [];
+            // console.log("After JSON Parse Existing Results")
+            results.push(linkData);
+            await redis.set(`${domain}_results`, JSON.stringify(results));
+            const checkedLinksData = await redis.smembers(checkedLinksKey)
+            checkedLinks.add(url)
+            checkedLinksData.forEach((link) => {
+                checkedLinks.add(link)
+            })
+            if (urlsToVisit !== undefined && urlsToVisit.length !== 0) {
+                let count = 0
+                for (const url of urlsToVisit) {
+                    if (!checkedLinks.has(url)) {
+                        await channel.sendToQueue(linkQueue, Buffer.from(JSON.stringify({
+                            link: url,
+                            depth: Number(data.depth) + 1
+                        })))
+                        count++;
+                    }
+                }
+                console.log("Adding new Link to Queue :: " + count)
+            } else {
+                console.log("No further URLs to visit from Link :: " + data.link)
+            }
+            console.log("Page Completed and returned to pool for Link :: " + data.link)
+            completedPage(page, consumerTag)
+            if (limit && checkedLinks.size > limit) {
+                await cleanup(consumerTag)
+            }
+            channel.ack(msg)
+        } catch (err) {
+            while (pages.length < maxPages) {
+                pages.push(await createPage(browser, authentication));
+            }
+            console.error("ERROR IN SCRAPING PAGE :: " + err)
+            channel.ack(msg)
+        }
+    })
+}
