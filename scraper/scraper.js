@@ -1,7 +1,7 @@
 import puppeteer from "puppeteer";
 import { URL } from "url";
 import amqp from "amqplib"
-import { Redis } from "@upstash/redis"
+import { Redis } from "ioredis"
 import dotenv from "dotenv";
 
 dotenv.config()
@@ -10,9 +10,8 @@ dotenv.config()
  * Redis Variables :: 
  */
 let isActive = false
-const RabbitMQ_URL = process.env.RABBITMQ_URL
-const Redis_URL = process.env.REDIS_URL
-const Redis_Token = process.env.REDIS_TOKEN
+export const RabbitMQ_URL = process.env.RABBITMQ_URL
+const Redis_URL = process.env.REDIS_PUBLIC_URL
 const ID = process.env.INSTANCE_ID
 
 if (!ID) {
@@ -21,45 +20,49 @@ if (!ID) {
 }
 
 console.log("Scraper ID ::: ", ID)
-if (!RabbitMQ_URL || !Redis_URL || !Redis_Token) {
+if (!RabbitMQ_URL || !Redis_URL) {
     console.error("Essential Environment Variables are not provided")
     process.exit(1)
 }
 
-let connection, redis, channel, subscriber
+export let connection, redis, channel, subscriber
 try {
     connection = await amqp.connect(RabbitMQ_URL)
     channel = await connection.createChannel()
 
-    redis = new Redis({
-        url: Redis_URL,
-        token: Redis_Token
-    })
+    redis = new Redis(Redis_URL)
 
-    subscriber = new Redis({
-        url: Redis_URL,
-        token: Redis_Token
-    })
+    subscriber = new Redis(Redis_URL)
 }
 catch (err) {
     console.log(err)
     throw err
 }
 
-await subscriber.subscribe(`${ID}_domain`, (domainInfo) => {
+redis.on("connect", () => console.log("Client Connected to Railway Redis ✅"));
+redis.on("error", (err) => console.error("Client Redis error:", err));
+
+subscriber.on("connect", () => console.log("Subscriber Connected to Railway Redis ✅"));
+subscriber.on("error", (err) => console.error("Subscriber Redis error:", err));
+
+await subscriber.subscribe(`${ID}_domain`)
+
+subscriber.on(`message`, (domainInfo, message) => {
     if (isActive) {
-        console.log("Error :: Another Domain assigned before completion\nAssigned :: " + domain)
+        console.log("Error :: Another Domain assigned before completion\nAssigned :: " + domainInfo)
         return;
     }
     isActive = true
-    console.log("Domain Assigned :: " , domainInfo)
+    console.log("Domain Assigned :: ", domainInfo)
     // call domain
-    const { domain, linkQueue, authentication, maxPages, limit } = JSON.parse(domainInfo)
+    const { domain, linkQueue, authentication, maxPages, limit } = JSON.parse(message)
     startConsumers(domain, linkQueue, authentication, maxPages, limit).catch((err) => {
         console.error("Error in starting Consumer for Domain :: " + domain + "\nError :: " + err)
     })
 })
 console.log("Subscriber Running at ", `${ID}_domain`)
+
+
 
 async function checkLink(link, page) {
     try {
@@ -354,7 +357,7 @@ async function startConsumers(domain, linkQueue, authentication, maxPages = 3, l
             await redis.sadd(checkedLinksKey, url)
             const existingResults = await redis.get(`${domain}_results`);
             // console.log("Before JSON Parse Existing Results :: ", linkData, " Data ::: ", existingResults)
-            const results = existingResults ?? [];
+            const results = JSON.parse(existingResults) ?? [];
             // console.log("After JSON Parse Existing Results")
             results.push(linkData);
             await redis.set(`${domain}_results`, JSON.stringify(results));

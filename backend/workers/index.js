@@ -27,6 +27,7 @@ import { connectDB, Website } from "./db.js";
  * available_browsers : 
  * stores : stores links of puppeteer browser instances currently idle
  * format : browser : {
+ *              id : unique
  *              link : hosted link of this instance
  *              endpoint : endpoint to assign queue name to the browser instance
  *          }
@@ -94,10 +95,10 @@ try {
             *    attempt : number of tries given to current website, max 3
             *    }
             */
-           if (!message.id) {
-               console.log("Invalid Queue Message :: ", message)
-               channel.ack(msg_website)
-               return;
+            if (!message.id) {
+                console.log("Invalid Queue Message :: ", message)
+                channel.ack(msg_website)
+                return;
             }
             const currWebsite = await Website.findById(message.id)
             if (!currWebsite) {
@@ -107,8 +108,8 @@ try {
             }
             const domain = currWebsite.domain
             const sitemapLinks = currWebsite.sitemapLinks
-            
-            console.log(`Recieved :: ${domain}, By :: ${queue}` )
+
+            console.log(`Recieved :: ${domain}, By :: ${queue}`)
             // Initialize active browser counter for this domain
             await redis.set(`${domain}_active_browsers`, 0)
 
@@ -117,7 +118,6 @@ try {
                 durable: true
             })
             for (const link of sitemapLinks) {
-
                 linkChannel.sendToQueue(domain + "_links", Buffer.from(JSON.stringify({
                     link,
                     depth: 0
@@ -142,38 +142,18 @@ try {
                 // wait for pupeteer intance to complete, by checking a queue or redis
                 const browser = JSON.parse(msg_browser.content.toString())
 
-                const uid = uuidv4()
+                const uid = browser.id
 
                 // Increment active browser count
                 await redis.incr(`${domain}_active_browsers`)
 
-                const response = await fetch(browser.link + browser.endpoint, {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                        "authorization": "Bearer " + authorization_token
-                    },
-                    body: maxLimit ? JSON.stringify({
-                        id: uid,
-                        queue: domain + "_links",
-                        limit: maxLimit
-                    }) : JSON.stringify({
-                        id: uid,
-                        queue: domain + "_links"
-                    }),
-                });
-
-                if (!response.ok) {
-                    // Decrement counter on failure
-                    await redis.decr(`${domain}_active_browsers`)
-                    browserChannel.sendToQueue("available_browsers", Buffer.from(msg_browser.content))
-                    return;
-                }
+                await redis.publish(`${id}_domain`)
 
                 // monitor for failures of the browsers or completion
                 const ETA = currWebsite.estimatedTime[queue] != -1 ?
                     currWebsite.estimatedTime[queue] : 100
                 // 1 -> working fine        0 -> idle / completed       -1 -> failure & removed from active queue
+                
                 let status = 1
                 let delay = ETA / 2
 
@@ -183,10 +163,6 @@ try {
                     status = Number(newStatus)
                     delay = Math.max(20, delay / 2)
                 }
-
-                // Return browser to pool
-                browserChannel.sendToQueue("available_browsers", Buffer.from(msg_browser.content))
-                browserChannel.ack(msg_browser)
 
                 // Decrement active browser count
                 const activeBrowsers = await redis.decr(`${domain}_active_browsers`)
@@ -215,10 +191,8 @@ try {
                     const info = await linkChannel.checkQueue(`${domain}_links`)
                     if (info.messageCount === 0) {
                         const checked_links = await redis.getdel(`${domain}_checkedLinks`)
-                        const broken_links = await redis.getdel(`${domain}_brokenLinks`)
-                        currWebsite.checkedLinks = checked_links
-                        currWebsite.brokenLinks = broken_links
                         const currentTime = await redis.getdel(`${domain}_duration`)
+                        currWebsite.checkedLinks = checked_links
                         const newApproximateTime = (currWebsite.estimatedTime[queue] + currentTime) / 2
                         currWebsite.estimatedTime[queue] = newApproximateTime
                         await currWebsite.save()
@@ -253,6 +227,10 @@ try {
                     await redis.del(`${domain}_active_browsers`)
                     channel.ack(msg_website)
                 }
+                // Return browser to pool
+                browserChannel.sendToQueue("available_browsers", Buffer.from(msg_browser.content))
+                await sleep(30000)
+                browserChannel.ack(msg_browser)
                 // acknowledge completion
             }, { noAck: false })
 

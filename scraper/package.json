@@ -11,9 +11,9 @@
   "license": "ISC",
   "type": "module",
   "dependencies": {
-    "@upstash/redis": "^1.35.6",
     "amqplib": "^0.10.9",
     "dotenv": "^17.2.3",
+    "ioredis": "^5.8.2",
     "puppeteer": "^24.29.0"
   }
 }
