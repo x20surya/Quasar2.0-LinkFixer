@@ -54,6 +54,6 @@ for (const id of IDs) {
     const key = `${id}_domain`
     console.log("Pushing to ", key)
     await redis.publish(key, JSON.stringify({
-        domain: domain, linkQueue: queue, maxPages: 3
+        domain: domain, linkQueue: queue, maxPages: 4
     }))
 }

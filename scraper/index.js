@@ -60,7 +60,7 @@ subscriber.on(`message`, (domainInfo, message) => {
         console.error("Error in starting Consumer for Domain :: " + domain + "\nError :: " + err)
     })
 })
-console.log("Subscriber Running at ", `${ID}_domain`)
+// console.log("Subscriber Running at ", `${ID}_domain`)
 
 
 
@@ -143,7 +143,7 @@ async function visitLink(link, page, baseDomain) {
         return { ...res, type: "internal" }
     }
     // stop futher examination of external links
-    console.log("Internal Link : ", link)
+    // console.log("Internal Link : ", link)
 
     // continue to find links within the internal pages
     // finding the links present in the page
@@ -168,13 +168,13 @@ async function visitLink(link, page, baseDomain) {
         }
         urlsToVisit.push(link)
     }
-    console.log("URL in page : " + urlsToVisit.length)
+    // console.log("URL in page : " + urlsToVisit.length)
     return { ...res, urlsToVisit, type: "internal" };
 }
 
 async function startConsumers(domain, linkQueue, authentication, maxPages = 3, limit = undefined) {
 
-    console.log(`Starting Consumer for Domain :: ${domain}, Queue :: ${linkQueue}, MaxPages :: ${maxPages}, Limit :: ${limit}\n\n`)
+    // console.log(`Starting Consumer for Domain :: ${domain}, Queue :: ${linkQueue}, MaxPages :: ${maxPages}, Limit :: ${limit}\n\n`)
 
     const startTime = Date.now()
 
@@ -242,7 +242,7 @@ async function startConsumers(domain, linkQueue, authentication, maxPages = 3, l
     async function setPauseBrowser(consumerTag) {
         const key = `${domain}_pause_status`
         if (!isPaused) {
-            console.log("Pausing Browser for Domain :: " + domain)
+            // console.log("Pausing Browser for Domain :: " + domain)
             isPaused = true
             const pausedSemaphore = await redis.decr(key)
             if (pausedSemaphore <= 0) {
@@ -280,9 +280,9 @@ async function startConsumers(domain, linkQueue, authentication, maxPages = 3, l
     }
     const completedPage = (page, consumerTag) => {
         if (pages.length >= maxPages) {
-            throw new Error("This can never happen, hopefully")
+            // throw new Error("This can never happen, hopefully")
         }
-        console.log("Page Completed and returned to pool")
+        // console.log("Page Completed and returned to pool")
         pages.push(page)
         clearTimeout(setPauseTimeout)
         setPauseTimeout = setTimeout(() => { setPauseBrowser(consumerTag) }, 10000)
@@ -301,27 +301,27 @@ async function startConsumers(domain, linkQueue, authentication, maxPages = 3, l
                 channel.ack(msg)
                 return
             }
-            console.log(`Processing Link :: ${data.link} at Depth :: ${data.depth}`)
+            // console.log(`Processing Link :: ${data.link} at Depth :: ${data.depth}`)
             if (checkedLinks.has(data.link)) {
-                console.log("Link already checked NO REDIS :: " + data.link)
+                // console.log("Link already checked NO REDIS :: " + data.link)
                 completedPage(page, consumerTag)
                 channel.ack(msg);
                 return;
             }
             if (await redis.sismember(checkedLinksKey, data.link)) {
                 checkedLinks.add(data.link)
-                console.log("Link already checked :: " + data.link)
+                // console.log("Link already checked :: " + data.link)
                 completedPage(page, consumerTag)
                 channel.ack(msg);
                 return;
             }
-            console.log("Visiting Link :: " + data.link)
+            // console.log("Visiting Link :: " + data.link)
             let linkInfo
             try {
                 if (baseDomain === undefined) {
                     const parsedURL = new URL(data.link)
                     baseDomain = parsedURL.hostname
-                    console.log("Base Domain Set to :: " + baseDomain)
+                    // console.log("Base Domain Set to :: " + baseDomain)
                 }
                 linkInfo = await visitLink(data.link, page, baseDomain)
 
@@ -377,11 +377,11 @@ async function startConsumers(domain, linkQueue, authentication, maxPages = 3, l
                         count++;
                     }
                 }
-                console.log("Adding new Link to Queue :: " + count)
+                // console.log("Adding new Link to Queue :: " + count)
             } else {
-                console.log("No further URLs to visit from Link :: " + data.link)
+                // console.log("No further URLs to visit from Link :: " + data.link)
             }
-            console.log("Page Completed and returned to pool for Link :: " + data.link)
+            // console.log("Page Completed and returned to pool for Link :: " + data.link)
             completedPage(page, consumerTag)
             if (limit && checkedLinks.size > limit) {
                 await cleanup(consumerTag)
