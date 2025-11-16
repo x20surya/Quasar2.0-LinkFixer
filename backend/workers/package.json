@@ -15,6 +15,7 @@
     "@upstash/redis": "^1.35.6",
     "amqplib": "^0.10.9",
     "dotenv": "^17.2.3",
+    "ioredis": "^5.8.2",
     "mongoose": "^8.19.2",
     "nodemon": "^3.1.10",
     "puppeteer": "^24.27.0",

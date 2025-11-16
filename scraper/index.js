@@ -10,9 +10,10 @@ dotenv.config()
  * Redis Variables :: 
  */
 let isActive = false
+let status = 0
 export const RabbitMQ_URL = process.env.RABBITMQ_URL
 const Redis_URL = process.env.REDIS_PUBLIC_URL
-const ID = process.env.INSTANCE_ID
+export const ID = process.env.INSTANCE_ID
 
 if (!ID) {
     console.error("Instance ID not provided")
@@ -25,10 +26,12 @@ if (!RabbitMQ_URL || !Redis_URL) {
     process.exit(1)
 }
 
-export let connection, redis, channel, subscriber
+export let connection, redis, channel, subscriber, pushBrowser
 try {
     connection = await amqp.connect(RabbitMQ_URL)
     channel = await connection.createChannel()
+
+    pushBrowser = await connection.createChannel()
 
     redis = new Redis(Redis_URL)
 
@@ -39,6 +42,10 @@ catch (err) {
     throw err
 }
 
+await pushBrowser.assertQueue("available_browsers")
+await pushBrowser.sendToQueue("available_browsers", Buffer.from(JSON.stringify({id : ID})))
+console.log("Browser pushed to queue")
+
 redis.on("connect", () => console.log("Client Connected to Railway Redis ✅"));
 redis.on("error", (err) => console.error("Client Redis error:", err));
 
@@ -47,17 +54,31 @@ subscriber.on("error", (err) => console.error("Subscriber Redis error:", err));
 
 await subscriber.subscribe(`${ID}_domain`)
 
+setInterval(async () => {
+    console.log("Sending status = ", status)
+    await redis.publish(`${ID}_status`, status)
+    if(status == -1){
+        status = 0
+    }
+}, 7000)
+
 subscriber.on(`message`, (domainInfo, message) => {
+    if(domainInfo != `${ID}_domain`){
+        console.log("Invalid Sucscriber")
+        return;
+    }
     if (isActive) {
         console.log("Error :: Another Domain assigned before completion\nAssigned :: " + domainInfo)
         return;
     }
     isActive = true
+    status = 1
     console.log("Domain Assigned :: ", domainInfo)
     // call domain
     const { domain, linkQueue, authentication, maxPages, limit } = JSON.parse(message)
     startConsumers(domain, linkQueue, authentication, maxPages, limit).catch((err) => {
         console.error("Error in starting Consumer for Domain :: " + domain + "\nError :: " + err)
+        status = -1
     })
 })
 // console.log("Subscriber Running at ", `${ID}_domain`)
@@ -174,14 +195,14 @@ async function visitLink(link, page, baseDomain) {
 
 async function startConsumers(domain, linkQueue, authentication, maxPages = 3, limit = undefined) {
 
-    // console.log(`Starting Consumer for Domain :: ${domain}, Queue :: ${linkQueue}, MaxPages :: ${maxPages}, Limit :: ${limit}\n\n`)
+    console.log(`Starting Consumer for Domain :: ${domain}, Queue :: ${linkQueue}, MaxPages :: ${maxPages}, Limit :: ${limit}\n\n`)
 
     const startTime = Date.now()
 
     const checkedLinksKey = `${domain}_checkedLinks`
-    await redis.del(checkedLinksKey)
-    await redis.set(`${ID}_status`, 1)
-    await redis.del(`${domain}_results`)
+    const pauseStatusKey = `${domain}_pause_status`
+    status = 1
+    await redis.incr(pauseStatusKey)
     if (!linkQueue.includes("_links")) {
         throw new Error("Invalid Queue name")
     }
@@ -219,11 +240,13 @@ async function startConsumers(domain, linkQueue, authentication, maxPages = 3, l
     let baseDomain = undefined
 
     async function cleanup(consumerTag) {
+        console.log("Cleanup started")
         if (hasCleaned) return
+
         hasCleaned = true
         clearTimeout(setPauseTimeout);
         clearTimeout(pauseStatusTimeout);
-        await redis.set(`${ID}_status`, 0)
+        status = 0
         await channel.cancel(consumerTag)
         await browser.close();
         const endTime = Date.now();
@@ -235,43 +258,74 @@ async function startConsumers(domain, linkQueue, authentication, maxPages = 3, l
             await redis.set(`${domain}_duration`, (completionTime + tempTime) / 2)
         }
         isActive = false
+
+        const finalCheckedLinks = await redis.smembers(checkedLinksKey)
+        const finalDataList = await redis.lrange(`${domain}_results`, 0, -1);
+        const finalData = finalDataList.map(item => JSON.parse(item));
+
+        console.log("Checked Links : ", finalCheckedLinks.length)
+        console.log("Checked Links Data : ", finalData.length)
+
+
+        const brokenLinks = []
+        for (const data of finalData) {
+            const stat = Number(data.status)
+
+            if (stat >= 200 && stat < 300) {
+                continue;
+            }
+            brokenLinks.push(data)
+        }
+
         console.log(`Completed Scraping for Domain :: ${domain} in ${completionTime} seconds`)
+        console.log(`Broken Links  ::: ${brokenLinks.length}`)
+        console.log(brokenLinks)
+
 
     }
 
     async function setPauseBrowser(consumerTag) {
-        const key = `${domain}_pause_status`
         if (!isPaused) {
-            // console.log("Pausing Browser for Domain :: " + domain)
+            console.log("Pausing Browser for Domain :: " + domain)
             isPaused = true
-            const pausedSemaphore = await redis.decr(key)
+            const pausedSemaphore = await redis.decr(pauseStatusKey)
+            console.log("pausedSemaphore ::: ", pausedSemaphore)
             if (pausedSemaphore <= 0) {
                 // handle completion
-                await cleanup(consumerTag)
+                try {
+                    await cleanup(consumerTag)
+                } catch (err) {
+                    console.error("Error in cleanup:", err)
+                    status = -1  // Signal failure
+                }
             }
         }
         pauseStatusTimeout = setTimeout(() => { checkPauseStatus(consumerTag) }, 10000)
     }
 
     async function checkPauseStatus(consumerTag) {
-        const key = `${domain}_pause_status`
         if (!isActive) return
-        const pausedSemaphore = Number(await redis.get(key))
+        const pausedSemaphore = Number(await redis.get(pauseStatusKey))
         if (pausedSemaphore <= 0) {
-            await cleanup(consumerTag)
+            try {
+                await cleanup(consumerTag)
+            } catch (err) {
+                console.error("Error in cleanup:", err)
+                status = -1  // Signal failure
+            }
         }
         clearTimeout(pauseStatusTimeout)
         pauseStatusTimeout = setTimeout(() => { checkPauseStatus(consumerTag) }, 10000)
     }
 
     const fetchPage = async () => {
-        const key = `${domain}_pause_status`
+        console.log("Page fetched ")
         if (pages.length === 0) {
             throw new Error("Unexpected :: Pages more than maxPages fetched")
         } else {
             if (isPaused) {
                 isPaused = false
-                await redis.incr(key)
+                await redis.incr(pauseStatusKey)
             }
             clearTimeout(setPauseTimeout)
             clearTimeout(pauseStatusTimeout)
@@ -282,7 +336,7 @@ async function startConsumers(domain, linkQueue, authentication, maxPages = 3, l
         if (pages.length >= maxPages) {
             // throw new Error("This can never happen, hopefully")
         }
-        // console.log("Page Completed and returned to pool")
+        console.log("Page Completed and returned to pool")
         pages.push(page)
         clearTimeout(setPauseTimeout)
         setPauseTimeout = setTimeout(() => { setPauseBrowser(consumerTag) }, 10000)
@@ -301,9 +355,9 @@ async function startConsumers(domain, linkQueue, authentication, maxPages = 3, l
                 channel.ack(msg)
                 return
             }
-            // console.log(`Processing Link :: ${data.link} at Depth :: ${data.depth}`)
+            console.log(`Processing Link :: ${data.link} at Depth :: ${data.depth}`)
             if (checkedLinks.has(data.link)) {
-                // console.log("Link already checked NO REDIS :: " + data.link)
+                console.log("Link already checked NO REDIS :: " + data.link)
                 completedPage(page, consumerTag)
                 channel.ack(msg);
                 return;
@@ -321,11 +375,11 @@ async function startConsumers(domain, linkQueue, authentication, maxPages = 3, l
                 if (baseDomain === undefined) {
                     const parsedURL = new URL(data.link)
                     baseDomain = parsedURL.hostname
-                    // console.log("Base Domain Set to :: " + baseDomain)
+                    console.log("Base Domain Set to :: " + baseDomain)
                 }
                 linkInfo = await visitLink(data.link, page, baseDomain)
 
-                // console.log("Link Info Recieved for :: " + data.link)
+                console.log("Link Info Recieved for :: " + data.link)
             } catch (err) {
                 console.error("ERROR IN VISITING LINK :: " + err)
                 await page.close();
@@ -333,7 +387,7 @@ async function startConsumers(domain, linkQueue, authentication, maxPages = 3, l
                 channel.ack(msg)
                 return
             }
-            const { urlsToVisit, redirectedTo, status, url, content, statusText } = linkInfo
+            const { urlsToVisit, redirectedTo, status: linkStatus, url, content, statusText } = linkInfo
 
             let linkData = {}
 
@@ -346,8 +400,8 @@ async function startConsumers(domain, linkQueue, authentication, maxPages = 3, l
             if (content !== undefined) {
                 linkData.content = content
             }
-            if (status !== undefined) {
-                linkData.status = status
+            if (linkStatus !== undefined) {
+                linkData.status = linkStatus
             }
             if (statusText !== undefined) {
                 linkData.statusText = statusText
@@ -355,12 +409,7 @@ async function startConsumers(domain, linkQueue, authentication, maxPages = 3, l
             linkData.timestamp = Date.now()
 
             await redis.sadd(checkedLinksKey, url)
-            const existingResults = await redis.get(`${domain}_results`);
-            // console.log("Before JSON Parse Existing Results :: ", linkData, " Data ::: ", existingResults)
-            const results = JSON.parse(existingResults) ?? [];
-            // console.log("After JSON Parse Existing Results")
-            results.push(linkData);
-            await redis.set(`${domain}_results`, JSON.stringify(results));
+            await redis.rpush(`${domain}_results`, JSON.stringify(linkData));
             const checkedLinksData = await redis.smembers(checkedLinksKey)
             checkedLinks.add(url)
             checkedLinksData.forEach((link) => {
@@ -384,9 +433,16 @@ async function startConsumers(domain, linkQueue, authentication, maxPages = 3, l
             // console.log("Page Completed and returned to pool for Link :: " + data.link)
             completedPage(page, consumerTag)
             if (limit && checkedLinks.size > limit) {
-                await cleanup(consumerTag)
+                try {
+                    await cleanup(consumerTag)
+                } catch (err) {
+                    console.error("Error in cleanup:", err)
+                    status = -1  // Signal failure
+                }
+                return
             }
             channel.ack(msg)
+
         } catch (err) {
             while (pages.length < maxPages) {
                 pages.push(await createPage(browser, authentication));

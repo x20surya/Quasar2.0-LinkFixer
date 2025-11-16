@@ -35,6 +35,8 @@ const links = [
 
 await redis.set("MESSAGE_FROM_DEMO_MANAGER", 1)
 await redis.expire("MESSAGE_FROM_DEMO_MANAGER", 20)
+await redis.del(`${domain}_checkedLinks`)
+await redis.del(`${domain}_results`)
 
 const connection = await amqp.connect(RabbitMQ_URL)
 const channel = await connection.createChannel()
@@ -54,6 +56,6 @@ for (const id of IDs) {
     const key = `${id}_domain`
     console.log("Pushing to ", key)
     await redis.publish(key, JSON.stringify({
-        domain: domain, linkQueue: queue, maxPages: 4
+        domain: domain, linkQueue: queue, maxPages: 4, limit : 100
     }))
 }
