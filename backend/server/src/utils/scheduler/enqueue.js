@@ -1,8 +1,4 @@
 import ampq from 'amqplib/callback_api.js'
-import dotenv from "dotenv"
-
-dotenv.config()
-
 // Producer function
 export default function enqueue(queue_name, data) {
     const rabbitURL = process.env.RABBITMQ_URL

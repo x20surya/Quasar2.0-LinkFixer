@@ -1,5 +1,4 @@
 import amqp from "amqplib"
-import dotenv from "dotenv"
 import { Redis } from 'ioredis'
 import { connectDB, Website } from "./db.js";
 
@@ -46,7 +45,6 @@ import { connectDB, Website } from "./db.js";
  *  
 */
 
-dotenv.config()
 await connectDB()
 
 const queue = process.env.QUEUE || "priority_low"

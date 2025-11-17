@@ -13,12 +13,10 @@
   "description": "",
   "dependencies": {
     "@google/genai": "^0.7.0",
-    "@upstash/redis": "^1.35.6",
     "amqplib": "^0.10.9",
     "bcryptjs": "^3.0.2",
     "body-parser": "^2.2.0",
     "cors": "^2.8.5",
-    "dotenv": "^16.4.7",
     "express": "^4.21.2",
     "ioredis": "^5.8.2",
     "jsonwebtoken": "^9.0.2",
@@ -26,7 +24,6 @@
     "mongodb": "^6.15.0",
     "mongoose": "^8.13.1",
     "node-cron": "^3.0.3",
-    "nodemailer": "^6.10.0",
     "uuid": "^13.0.0"
   },
   "devDependencies": {
