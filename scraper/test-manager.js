@@ -1,8 +1,6 @@
-import dotenv from 'dotenv'
 import amqp from "amqplib"
 import { Redis } from "ioredis"
 
-dotenv.config()
 
 const Redis_URL = process.env.REDIS_PUBLIC_URL
 const RabbitMQ_URL = process.env.RABBITMQ_URL
