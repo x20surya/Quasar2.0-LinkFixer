@@ -5,7 +5,7 @@ import { parseSitemap } from "../../utils/website/sitemap.js";
 import enqueue from "../../utils/scheduler/enqueue.js";
 
 const router = Router();
-router.post("/addWebsite", auth, async (req, res) => {
+router.post("/", auth, async (req, res) => {
   let { link } = req.body;
   const user = await User.findById(req.user.id)
     .select("-password")
@@ -13,23 +13,53 @@ router.post("/addWebsite", auth, async (req, res) => {
   if (!user) {
     return res.status(404).json({ error: "User not found" });
   }
-  if (!domain.includes("http")) {
-    domain = "http://" + domain
-  }
   if (!link) {
     return res.status(400).json({ error: "Please provide a valid start URL" });
   }
-  const url = new URL(domain)
+  if (!link.includes("http")) {
+    link = "http://" + link
+  }
+  const url = new URL(link)
 
   const domain = url.hostname
   if (!domain) {
     return res.status(400).json({ error: "Please provide a valid start URL" });
   }
 
-  if (user.websites.some((website) => website.domain === domain)) {
-    return res.status(400).json({ error: "Website already exists" });
+  const website = await Website.findOne({
+    domain
+  })
+
+  if (website !== null) {
+
+    if (user.websites.some((website) => website.domain === domain)) {
+      return res.status(400).json({ error: "Website already added to user" });
+    }
+    user.websites.push({
+      id: website._id,
+      domain: website.domain
+    })
+    website.userID.push(user.id)
+
+    try {
+      await Promise.all([user.save(), website.save()])
+    } catch (err) {
+      return res.json({
+        error: `Error in saving data`
+      }).status(400)
+    }
+    return res.json({
+      msg: `Website added sucessfully`,
+      website: website
+    }).status(200)
   }
+
   let reports = {}
+
+  if (user.websites.some((website) => website.domain === domain)) {
+    // console.log(`Invalid foreign key to website in User`)
+    user.websites = user.websites.filter((website) => { website.domain !== domain })
+  }
 
   const sitemapURL = url.hostname + "/sitemap.xml"
 
@@ -48,7 +78,7 @@ router.post("/addWebsite", auth, async (req, res) => {
   try {
     const website = new Website({
       domain,
-      userID: req.user.id,
+      userID: [req.user.id],
       checkedLinks: [],
       sitemapLinks: (sitemapLinks.length === 0) ? [link] : sitemapLinks
     });
@@ -62,11 +92,13 @@ router.post("/addWebsite", auth, async (req, res) => {
     } catch (err) {
       console.log(`Error in saving data to db in addWebsite`)
       console.log(err)
+      return res.status(400).json({
+        error: `Error in saving data`
+      })
     }
-    await enqueue("priority_high_domain", domain)
 
     return res.status(201).json({
-      ...res,
+      ...reports,
       msg: `Website added sucessfully`,
       website: website
     });
