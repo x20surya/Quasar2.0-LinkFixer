@@ -3,9 +3,6 @@ import { User } from "../models/user.js";
 import { sendVerificationEmail } from "../utils/mail/mail.js";
 import jwt from "jsonwebtoken";
 import { auth } from "../middleware/auth.js";
-import dotenv from "dotenv";
-
-dotenv.config();
 
 const router = express.Router();
 

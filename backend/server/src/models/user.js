@@ -2,8 +2,6 @@ import mongoose from "mongoose";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { v4 as uuidv4 } from 'uuid';
-import dotenv from "dotenv";
-dotenv.config();
 
 const UserSchema = new mongoose.Schema({
   username: {
@@ -41,63 +39,63 @@ const UserSchema = new mongoose.Schema({
       id: {
         type: String,
       },
-      startURL: {
+      domain: {
         type: String,
       },
     }
   ],
 });
 
-
 const WebsiteSchema = new mongoose.Schema({
-    domain: {
-        type: String,
-        required: true,
-    },
-    checkedAt: {
-        type: Date,
-        default: Date.now,
-    },
-    brokenLinks: {
-        type: Array,
-        default: [],
-    },
+  userID: String,
+  domain: {
+    type: String,
+    required: true,
+  },
+  sitemapLinks: {
+    type: Array,
+    default: []
+  },
+  checks: [{
     checkedLinks: {
-        type: Array,
-        default: [],
+      type: Array,
+      default: [],
     },
-    sitemapLinks: {
-        type: Array,
-        default : []
-    },
-    userID: {
-        type: String,
-    },
-    estimatedTimeLow : {
-        priority_low : {
-            type : Number,
-            default : -1
+    aiReport: String,
+    duration: Number,
+    checkedAt: {
+      type: Date,
+      default: Date.now
+    }
+  }],
+  options: {
+    authentication: {
+      type: new mongoose.Schema({
+        cookies: {
+          type: Map,
+          of: String,
+          default: {}
         },
-        priority_mid : {
-            type : Number,
-            default : -1
-        },
-        priority_high : {
-            type : Number,
-            default : -1
+        token: {
+          type: [String],
+          default: []
         }
-    },
-    aiReport: {
-        type: String
-    },
-    updatedAt: {
-        type: Date,
-        default: Date.now,
-    },
-    createdAt: {
-        type: Date,
-        default: Date.now,
-    },
+      }, { _id: false })
+    }
+  },
+  estimatedTime: {
+    priority_low: { type: Number, default: -1 },
+    priority_mid: { type: Number, default: -1 },
+    priority_high: { type: Number, default: -1 }
+  },
+  updatedAt: {
+    type: Date,
+    default: Date.now,
+  },
+  createdAt: {
+    type: Date,
+    default: Date.now,
+  }
 }, { timestamps: true });
 
 UserSchema.pre("save", async function (next) {

@@ -1,17 +1,14 @@
 import amqp from "amqplib"
-import dotenv from "dotenv"
-import { Redis } from '@upstash/redis'
-import { v4 as uuidv4 } from "uuid";
+import { Redis } from 'ioredis'
 import { connectDB, Website } from "./db.js";
 
 /**
  * Queues Used :---
  * 
- * priority_low / priority_mid / priority_high : 
+ * priority_low_domain / priority_mid_domain / priority_high_domain : 
  * stores : website domains 
  * format : message : {
  *              id : uid for the website in mongo
- *              password : Env variable common in server and manager
  *              attempt : number of tries given to current website, max 3
  *          }
  * 
@@ -27,39 +24,65 @@ import { connectDB, Website } from "./db.js";
  * available_browsers : 
  * stores : stores links of puppeteer browser instances currently idle
  * format : browser : {
+ *              id : unique
  *              link : hosted link of this instance
  *              endpoint : endpoint to assign queue name to the browser instance
  *          }
  */
 
+/**  Redis -> 
+ * 
+ *  queued:${websiteID}
+ *      VALUE : 0 -> stop execution 1 -> continue execution
+ *      status of website queue
+ *  
+ *  <website_id>_active_browsers
+ *      VALUE :: number
+ *      number of browsers currently working on a website_id
+ * 
+ *  SERVICES:DOWN
+ *      1 -> all services down, no scraper available
+ * 
+ *  reports
+ *      value -> as needed by coder for admin portal
+ *  
+ *  
+*/
 
-dotenv.config()
 await connectDB()
 
 const queue = process.env.QUEUE || "priority_low"
 const nextQueue = process.env.NEXT_QUEUE || "priority_mid"
 const instances = Number.parseInt(process.env.INSTANCES) || 1
 const maxLimit = Number.parseInt(process.env.LINK_LIMIT) || undefined
-const authorization_token = process.env.AUTHORIZATION_TOKEN
 
-const reddisURL = process.env.REDDIS_URL
-const reddisToken = process.env.REDDIS_TOKEN
+const browserChannelQueue = "available_browsers"
+const websiteQueue = queue + "_domain"
+
+const redisURL = process.env.REDIS_URL
 const rabbitMQURL = process.env.RABBITMQ_URL
 
 function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
+await sleep(15000)
 let redis
 try {
-    redis = new Redis({
-        url: reddisURL,
-        token: reddisToken,
-    })
+    redis = new Redis(redisURL)
 } catch (err) {
     console.error(err)
     process.exit(1)
 }
+
+redis.on("connect", () => {
+    console.log("Connected to Redis ✅")
+})
+redis.on("error", (error) => {
+    console.log("Error in connection to Redis ❌")
+    console.error(error.message)
+    process.exit(1)
+})
 
 try {
     const connection = await amqp.connect(rabbitMQURL)
@@ -76,7 +99,6 @@ try {
         console.error(err)
         process.exit(1)
     }
-    const websiteQueue = queue + "_domain"
     try {
         channel.assertQueue(websiteQueue, {
             durable: true
@@ -89,15 +111,14 @@ try {
             const message = JSON.parse(msg_website.content.toString())
             /*
             *    message : {
-            *    id : uid for the website in mongo
-            *    password : Env variable common in server and manager
-            *    attempt : number of tries given to current website, max 3
+            *       id : uid for the website in mongo
+            *       attempt : number of tries given to current website, max 3
             *    }
             */
-           if (!message.id) {
-               console.log("Invalid Queue Message :: ", message)
-               channel.ack(msg_website)
-               return;
+            if (message.id === undefined || message.attempt === undefined) {
+                console.log("Invalid Queue Message :: ", message)
+                channel.ack(msg_website)
+                return;
             }
             const currWebsite = await Website.findById(message.id)
             if (!currWebsite) {
@@ -105,156 +126,326 @@ try {
                 channel.ack(msg_website)
                 return
             }
+
+            const websiteID = currWebsite.id
             const domain = currWebsite.domain
             const sitemapLinks = currWebsite.sitemapLinks
-            
-            console.log(`Recieved :: ${domain}, By :: ${queue}` )
+            console.log("website ::::::: ", domain)
+
+            const linkQueue = domain + "_links"
+            const activeBrowserKey = `${websiteID}_active_browsers`
+            const queuedKey = `queued:${websiteID}`
+
+            console.log(`Recieved :: ${domain}, By :: ${queue}`)
+
+            // checking if website execution cancelled after queuing
+            const isCancelled = await redis.get(queuedKey)
+            if (Number(isCancelled) !== 1) {
+                console.log("WEBSITE EXECUTION CANCELLED")
+                console.log("isCancelled ::: ", isCancelled)
+                channel.ack(msg_website)
+                return
+            }
+
             // Initialize active browser counter for this domain
-            await redis.set(`${domain}_active_browsers`, 0)
+            await redis.set(activeBrowserKey, 0)
 
             // create a queue and push links into queue
-            linkChannel.assertQueue(domain + "_links", {
+            linkChannel.assertQueue(linkQueue, {
                 durable: true
             })
-            for (const link of sitemapLinks) {
 
-                linkChannel.sendToQueue(domain + "_links", Buffer.from(JSON.stringify({
+            for (const link of sitemapLinks) {
+                linkChannel.sendToQueue(linkQueue, Buffer.from(JSON.stringify({
                     link,
+                    baseDomain: domain,
                     depth: 0
                 })), {
                     persistent: true
                 })
             }
 
+            let browser_message_batch = []
+
             // allocate queue to available vacant pupeteer instances
-            browserChannel.assertQueue("available_browsers", {
+            browserChannel.assertQueue(browserChannelQueue, {
                 durable: true
             })
             browserChannel.prefetch(instances)
 
-            browserChannel.consume("available_browsers", async (msg_browser) => {
+            let browserConsumerTag
+
+            browserChannel.consume(browserChannelQueue, async (msg_browser) => {
                 /*
                 *    browser : {
-                *        link : hosted link of this instance
-                *        endpoint : endpoint to assign queue name to the browser instance
+                *        id,
+                *        failure
                 *    }
                 */
                 // wait for pupeteer intance to complete, by checking a queue or redis
                 const browser = JSON.parse(msg_browser.content.toString())
-
-                const uid = uuidv4()
+                browser_message_batch.push(msg_browser)
+                const uid = browser.id
 
                 // Increment active browser count
-                await redis.incr(`${domain}_active_browsers`)
+                await redis.incr(activeBrowserKey)
 
-                const response = await fetch(browser.link + browser.endpoint, {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                        "authorization": "Bearer " + authorization_token
-                    },
-                    body: maxLimit ? JSON.stringify({
-                        id: uid,
-                        queue: domain + "_links",
-                        limit: maxLimit
-                    }) : JSON.stringify({
-                        id: uid,
-                        queue: domain + "_links"
-                    }),
-                });
+                const authentication = currWebsite.options.authentication, maxPages = 3, limit = maxLimit
 
-                if (!response.ok) {
-                    // Decrement counter on failure
-                    await redis.decr(`${domain}_active_browsers`)
-                    browserChannel.sendToQueue("available_browsers", Buffer.from(msg_browser.content))
-                    return;
-                }
+                console.log(`Browser :::::::::::::::::::::::::::::::::::::: `, browser)
 
-                // monitor for failures of the browsers or completion
-                const ETA = currWebsite.estimatedTime[queue] != -1 ?
-                    currWebsite.estimatedTime[queue] : 100
-                // 1 -> working fine        0 -> idle / completed       -1 -> failure & removed from active queue
-                let status = 1
-                let delay = ETA / 2
+                await redis.set(`${domain}_pause_status`, 0)
+                await redis.del(`${domain}_checkedLinks`)
+                await redis.del(`${domain}_results`)
+                await redis.publish(`${uid}_domain`, JSON.stringify({
+                    domain,
+                    limit,
+                    maxPages,
+                    linkQueue,
+                    authentication
+                }))
+                console.log("")
+                // health check to ensure the Pupeteer browser didn't breakdown and stopped without giving error or updating status
+                const statusSubscriber = new Redis(redisURL)
 
-                while (status === 1) {
-                    await sleep(delay)
-                    const newStatus = await redis.get(`${uid}_status`)
-                    status = Number(newStatus)
-                    delay = Math.max(20, delay / 2)
-                }
+                await statusSubscriber.subscribe(`${uid}_status`)
 
-                // Return browser to pool
-                browserChannel.sendToQueue("available_browsers", Buffer.from(msg_browser.content))
-                browserChannel.ack(msg_browser)
-
-                // Decrement active browser count
-                const activeBrowsers = await redis.decr(`${domain}_active_browsers`)
-
-                if (status !== 0) {
-                    // log error
-                    // Check if all browsers are done and handle failure
+                async function handleFailure(status = 1) {
+                    console.log("Handling Failure")
+                    await statusSubscriber.unsubscribe(`${uid}_status`).catch(() => { })
+                    await statusSubscriber.quit().catch(() => { })
+                    const activeBrowsers = await redis.decr(activeBrowserKey)
                     if (activeBrowsers <= 0) {
+                        console.log("Failure and 0 ACTIVE BROWSER\n")
+                        console.log(message)
                         if (Number(message.attempt) >= 3) {
                             // log FATAL ERROR and write error to Mongo
-                            await redis.del(`queued:${domain}`)
-                            await redis.del(`${domain}_active_browsers`)
+                            await redis.del(queuedKey)
+                            await redis.del(activeBrowserKey)
                             channel.ack(msg_website)
+                            await redis.rpush(`reports`, JSON.stringify({
+                                trace: `/backend/workers/index.js`,
+                                level: `high`,
+                                type: `worker`,
+                                queue_name: queue,
+                                caller: `handleFailure()`,
+                                message: `handleFailure() called for ${browser.id}`
+                            }))
+                            try {
+                                await browserChannel.cancel(browserConsumerTag)
+                            } catch (err) {
+                                console.error("Error cancelling browser consumer:", err)
+                            }
+                            for (const temp_msg of browser_message_batch) {
+                                try {
+                                    if (temp_msg === msg_browser) {
+                                        if (status === 0) browser.failure = Number(browser.failure) + 1
+                                        if (browser.failure < 3) { browserChannel.sendToQueue(browserChannelQueue, Buffer.from(JSON.stringify(browser))) }
+                                        else {
+                                            const remaining_browsers = await browserChannel.checkQueue(browserChannelQueue)
+                                            if(remaining_browsers.messageCount === 0){
+                                                console.log(`!!! NO SCRAPERS WORKING !!!`)
+                                                await redis.set(`SERVICES:DOWN`, 1)
+                                                channel.nack(msg_website)
+                                                return
+                                            }
+                                        }
+                                    } else {
+                                        browserChannel.sendToQueue(browserChannelQueue, Buffer.from(temp_msg.content))
+                                    }
+                                    browserChannel.ack(temp_msg)
+                                } catch (err) {
+                                    console.error("Error returning browser to pool:", err)
+                                }
+
+                            }
+                            browser_message_batch = []
                             return
                         }
                         message.attempt = Number(message.attempt) + 1
                         channel.sendToQueue(websiteQueue, Buffer.from(JSON.stringify(message)))
                         channel.ack(msg_website)
+                        try {
+                            await browserChannel.cancel(browserConsumerTag)
+                        } catch (err) {
+                            console.error("Error cancelling browser consumer:", err)
+                        }
+                        for (const temp_msg of browser_message_batch) {
+                            try {
+                                browserChannel.sendToQueue(browserChannelQueue, Buffer.from(temp_msg.content))
+                                browserChannel.ack(temp_msg)
+
+                            } catch (err) {
+                                console.error("Error returning browser to pool:", err)
+                            }
+                        }
+                        browser_message_batch = []
+                        return
                     }
+                    // browserChannel.sendToQueue(browserChannelQueue, Buffer.from(msg_browser.content))
+                    browserChannel.ack(msg_browser)
+                    browser_message_batch = browser_message_batch.filter((x) => x !== msg_browser)
                     return
                 }
 
-                // Only proceed with completion check if this is the last browser
-                if (activeBrowsers <= 0) {
-                    // after completion confirmation check if links queue is empty, If not empty push to next priority_queue
-                    const info = await linkChannel.checkQueue(`${domain}_links`)
-                    if (info.messageCount === 0) {
-                        const checked_links = await redis.getdel(`${domain}_checkedLinks`)
-                        const broken_links = await redis.getdel(`${domain}_brokenLinks`)
-                        currWebsite.checkedLinks = checked_links
-                        currWebsite.brokenLinks = broken_links
-                        const currentTime = await redis.getdel(`${domain}_duration`)
+                let failureTimeout = setTimeout(() => { handleFailure(0) }, 30000)
+
+
+                async function unsubscribe() {
+                    console.log("Unsubscribing")
+                    await statusSubscriber.unsubscribe(`${uid}_status`).catch((err) => {
+                        console.log("Error in unsubscribing")
+                        console.log(err)
+                    })
+                    await statusSubscriber.quit()
+                }
+
+
+                statusSubscriber.on("message", async (ch, msg) => {
+                    // 1 -> working fine        0 -> idle / completed       -1 -> failure & removed from active queue
+                    console.log("Recieving status = ", msg)
+
+                    if (ch !== `${uid}_status`) {
+                        console.log("F")
+                    }
+                    if (isNaN(Number(msg))) {
+                        console.log("Message recieved :: ", msg)
+                        return
+                    }
+
+                    if (Number(msg) == 1) {
+                        clearTimeout(failureTimeout)
+                        failureTimeout = setTimeout(handleFailure, 30000)
+                        return
+                    }
+                    if (Number(msg) == -1) {
+                        await handleFailure()
+                        clearTimeout(failureTimeout)
+                        return
+                    }
+
+                    console.log("0   Recieving status -> stop execution")
+
+                    clearTimeout(failureTimeout)
+                    await unsubscribe()
+
+                    const activeBrowsers = await redis.decr(activeBrowserKey)
+
+                    console.log(`Active Browsers for :: ${domain} :: ${activeBrowsers}`)
+
+                    if (activeBrowsers <= 0) {
+                        // after completion confirmation check if links queue is empty, If not empty push to next priority_queue
+                        const info = await linkChannel.checkQueue(linkQueue)
+                        console.log("ACTIVE BROWSER 0")
+                        if (info.messageCount === 0) {
+                            console.log(`EXECUTION COMPLETED :::: ${domain}`)
+                            // TODO Add checks later
+                            const resultsList = await redis.lrange(`${domain}_results`, 0, -1);
+                            await redis.del(`${domain}_results`);
+                            const results = resultsList.map(item => JSON.parse(item));
+                            currWebsite.checkedLinks = results;
+
+                            console.log(results)
+
+                            const currentCompletionTime = await redis.getdel(`${domain}_duration`)
+                            const newApproximateTime = (currWebsite.estimatedTime[queue] + Number(currentCompletionTime)) / 2
+                            currWebsite.estimatedTime[queue] = newApproximateTime
+
+                            console.log("New Approximate time ::::::::::::::::::: ", newApproximateTime)
+                            const isCancelled = await redis.getdel(queuedKey)
+                            if (Number(isCancelled) === 1 || isCancelled === "1") {
+                                console.log("Saving to db")
+                                await currWebsite.save()
+                            }
+
+                            // Clean up active browser counter
+                            await redis.del(activeBrowserKey)
+                            channel.ack(msg_website)
+
+                            try {
+                                await browserChannel.cancel(browserConsumerTag)
+                            } catch (err) {
+                                console.error("Error cancelling browser consumer:", err)
+                            }
+
+                            for (const temp_msg of browser_message_batch) {
+                                try {
+                                    const temp = JSON.parse(temp_msg.content.toString()).id
+                                    browserChannel.sendToQueue(browserChannelQueue, Buffer.from(temp_msg.content))
+                                    browserChannel.ack(temp_msg)
+                                    console.log(`Acked :: ${temp} :: sent in rotation`)
+                                } catch (err) {
+                                    console.error("Error returning browser to pool:", err)
+                                }
+
+                            }
+                            browser_message_batch = []
+                            return;
+                        }
+
+                        if (queue === "priority_high" && info.messageCount !== 0) {
+                            console.log(`EXECUTION INCOMPLETE :::: ${domain} :::: ${queue}`)
+
+                            // log unexpexted situation as high priority websites should be completed full
+                            await redis.del(queuedKey)
+                            // Clean up active browser counter
+                            await redis.del(activeBrowserKey)
+                            channel.ack(msg_website)
+                            try {
+                                await browserChannel.cancel(browserConsumerTag)
+                            } catch (err) {
+                                console.error("Error cancelling browser consumer:", err)
+                            }
+                            for (const temp_msg of browser_message_batch) {
+                                try {
+                                    browserChannel.sendToQueue(browserChannelQueue, Buffer.from(temp_msg.content))
+                                    browserChannel.ack(temp_msg)
+                                } catch (err) {
+                                    console.error("Error returning browser to pool:", err)
+                                }
+
+                            }
+                            browser_message_batch = []
+                            clearTimeout(failureTimeout)
+                            return;
+                        }
+
+                        console.log("INCOMPLETE EXECUTION")
+
+                        const currentTime = Number(await redis.getdel(`${domain}_duration`))
                         const newApproximateTime = (currWebsite.estimatedTime[queue] + currentTime) / 2
                         currWebsite.estimatedTime[queue] = newApproximateTime
+
                         await currWebsite.save()
-                        await redis.del(`queued:${domain}`)
+                        channel.sendToQueue(nextQueue + "_domain", Buffer.from(JSON.stringify({
+                            id: currWebsite.id,
+                            attempt: 1
+                        })))
+                        await redis.del(queuedKey)
                         // Clean up active browser counter
-                        await redis.del(`${domain}_active_browsers`)
+                        await redis.del(activeBrowserKey)
                         channel.ack(msg_website)
-                        return;
+                        await statusSubscriber.quit()
+                        for (const temp_msg of browser_message_batch) {
+                            try {
+                                browserChannel.sendToQueue(browserChannelQueue, Buffer.from(temp_msg.content))
+                                browserChannel.ack(temp_msg)
+                            } catch (err) {
+                                console.error("Error returning browser to pool:", err)
+                            }
+
+                        }
+                        browser_message_batch = []
                     }
-
-                    if (queue === "priority_high" && info.messageCount !== 0) {
-                        // log unexpexted situation as high priority websites should be completed full
-                        await redis.del(`queued:${domain}`)
-                        // Clean up active browser counter
-                        await redis.del(`${domain}_active_browsers`)
-                        channel.ack(msg_website)
-                        return;
-                    }
-
-                    const currentTime = await redis.getdel(`${domain}_duration`)
-                    const newApproximateTime = (currWebsite.estimatedTime[queue] + currentTime) / 2
-                    currWebsite.estimatedTime[queue] = newApproximateTime
-
-                    await currWebsite.save()
-                    channel.sendToQueue(nextQueue + "_domain", Buffer.from(JSON.stringify({
-                        id: currWebsite.id,
-                        password: message.password,
-                        attempt: 1
-                    })))
-                    await redis.del(`queued:${domain}`)
-                    // Clean up active browser counter
-                    await redis.del(`${domain}_active_browsers`)
-                    channel.ack(msg_website)
-                }
-                // acknowledge completion
-            }, { noAck: false })
+                    // Return browser to pool
+                    await statusSubscriber.quit()
+                })
+                statusSubscriber.on("error", (err) => {
+                    console.error(`Subscriber error for ${uid}:`, err)
+                })
+            }, { noAck: false }).then(({ consumerTag }) => {
+                browserConsumerTag = consumerTag
+            })
 
         }, {
             noAck: false

@@ -1,12 +1,9 @@
 import express from "express";
-import dotenv from "dotenv";
 import cors from "cors";
 import { connectDB } from "./src/database/connectdb.js";
 import authRoutes from "./src/routes/auth.js";
-import apiRoutes from "./src/routes/api.js";
-import { startupSeq } from "./src/utils/scheduler/logger.js";
+import apiRoutes from "./src/routes/website/index.js";
 
-dotenv.config();
 export const app = express();
 const PORT = process.env.PORT || 5000;
 

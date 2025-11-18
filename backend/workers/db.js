@@ -28,33 +28,42 @@ const WebsiteSchema = new mongoose.Schema({
         type: Date,
         default: Date.now,
     },
-    brokenLinks: {
-        type: Array,
-        default: [],
-    },
     checkedLinks: {
         type: Array,
         default: [],
     },
     sitemapLinks: {
         type: Array,
-        default : []
+        default: []
+    },
+    options: {
+        authentication: {
+            cookies: {
+                type: Map,
+                of: String,
+                default: new Map()
+            },
+            token: {
+                type: [String],
+                default: []
+            }
+        }
     },
     userID: {
         type: String,
     },
-    estimatedTime : {
-        priority_low : {
-            type : Number,
-            default : -1
+    estimatedTime: {
+        priority_low: {
+            type: Number,
+            default: -1
         },
-        priority_mid : {
-            type : Number,
-            default : -1
+        priority_mid: {
+            type: Number,
+            default: -1
         },
-        priority_high : {
-            type : Number,
-            default : -1
+        priority_high: {
+            type: Number,
+            default: -1
         }
     },
     aiReport: {
