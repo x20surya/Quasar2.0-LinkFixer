@@ -1,26 +1,53 @@
 import { auth } from "../../middleware/auth.js";
-import { Website } from "../../models/user.js";
-import {Router} from "express";
+import { User, Website } from "../../models/user.js";
+import { Router } from "express";
 
 const router = Router();
 
-router.post("/deleteWebsite", auth, async (req, res) => {
-  const { id } = req.body;
+router.post("/", auth, async (req, res) => {
+  const { websiteID } = req.body;
+  if(!websiteID){
+    return res.json({
+      error : `Invalid request`
+    })
+  }
   const userID = req.user.id;
+  if(!userID){
+    return res.json({
+      error : `Invalid request`
+    })
+  }
   try {
-    const website = await Website.findOneAndDelete({ _id: id, userID });
-    if (website == null) throw new Error("Website not found");
-    const user = await User.findById(userID);
-    if (user == null) throw new Error("User Invalid");
-    console.log(user);
-    user.websites = user.websites.filter((web) => {
-      return web.id !== id;
-    });
-    await user.save();
-    await Website.findOneAndDelete({ _id: id, userID });
-    return res.status(200).json({ msg: "deleted successfully" });
-  } catch (error) {
-    return res.status(400).json({ msg: error.message });
+    const user = await User.findById(userID)
+    if (user === null) {
+      return res.status(404).json({ msg: `User not found` })
+    }
+    user.websites = user.websites.filter((web) => { return (web.id !== websiteID) })
+
+    const website = await Website.findById(websiteID)
+    if (website === null) {
+      try {
+        await user.save()
+      } catch (err) {
+        return res.json({
+          error: `Error in saving data`
+        })
+      }
+      return res.status(404).json(`Invalid website key`)
+    }
+    website.userID = website.userID.filter((user) => { return user !== userID })
+    try {
+      await Promise.all([website.save(), user.save()])
+    } catch (err) {
+      return res.json({
+        error: `Error in saving data`
+      })
+    }
+    return res.status(200).json({
+      msg: `Deleted successfully`
+    })
+  } catch (err) {
+    return res.status(500).json(`Server Error`)
   }
 });
 
