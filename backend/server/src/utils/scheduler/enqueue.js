@@ -17,14 +17,14 @@ try {
 }
 
 
-export default function enqueue(queue_name, data) {
+export default async function enqueue(queue_name, data) {
     const queue = queue_name
     const msg = data
     try {
-        channel.assertQueue(queue, {
+        await channel.assertQueue(queue, {
             durable: true
         })
-        channel.sendToQueue(queue, Buffer.from(msg), {
+        await channel.sendToQueue(queue, Buffer.from(msg), {
             persistent: true
         })
         console.log(`${msg} pushed to ${queue}`)
