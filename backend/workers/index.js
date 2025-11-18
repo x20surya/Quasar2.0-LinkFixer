@@ -25,8 +25,7 @@ import { connectDB, Website } from "./db.js";
  * stores : stores links of puppeteer browser instances currently idle
  * format : browser : {
  *              id : unique
- *              link : hosted link of this instance
- *              endpoint : endpoint to assign queue name to the browser instance
+ *              failure
  *          }
  */
 

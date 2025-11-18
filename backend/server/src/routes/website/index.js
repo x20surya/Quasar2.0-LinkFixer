@@ -1,8 +1,8 @@
 import express from "express";
-import { auth } from "../middleware/auth.js";
-import addWebsite from "addWebsite.js";
-import removeWebsite from "deleteWebsite.js";
-import scanWebsite from "scanWebsite.js"
+import { auth } from "../../middleware/auth.js";
+import addWebsite from "./addWebsite.js";
+import removeWebsite from "./deleteWebsite.js";
+import scanWebsite from "./scanWebsite.js"
 
 
 const router = express.Router();
