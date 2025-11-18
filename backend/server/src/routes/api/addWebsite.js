@@ -17,13 +17,13 @@ router.post("/addWebsite", auth, async (req, res) => {
     domain = "http://" + domain
   }
   if (!link) {
-    return res.status(400).json({ error: "Please provide a start URL" });
+    return res.status(400).json({ error: "Please provide a valid start URL" });
   }
   const url = new URL(domain)
 
   const domain = url.hostname
   if (!domain) {
-    return res.status(400).json({ error: "Please provide a start URL" });
+    return res.status(400).json({ error: "Please provide a valid start URL" });
   }
 
   if (user.websites.some((website) => website.domain === domain)) {
