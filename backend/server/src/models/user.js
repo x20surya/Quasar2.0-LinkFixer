@@ -39,74 +39,64 @@ const UserSchema = new mongoose.Schema({
       id: {
         type: String,
       },
-      startURL: {
+      domain: {
         type: String,
       },
     }
   ],
 });
 
-
 const WebsiteSchema = new mongoose.Schema({
-    domain: {
-        type: String,
-        required: true,
-    },
-    checkedAt: {
-        type: Date,
-        default: Date.now,
-    },
+  userID: String,
+  domain: {
+    type: String,
+    required: true,
+  },
+  sitemapLinks: {
+    type: Array,
+    default: []
+  },
+  checks: [{
     checkedLinks: {
-        type: Array,
-        default: [],
+      type: Array,
+      default: [],
     },
-    sitemapLinks: {
-        type: Array,
-        default: []
-    },
-    options: {
-        authentication: {
-            cookies: {
-                type: Map,
-                of: String,
-                default: new Map()
-            },
-            token: {
-                type: [String],
-                default: []
-            }
-        }
-    },
-    userID: {
-        type: String,
-    },
-    estimatedTime: {
-        priority_low: {
-            type: Number,
-            default: -1
+    aiReport: String,
+    duration: Number,
+    checkedAt: {
+      type: Date,
+      default: Date.now
+    }
+  }],
+  options: {
+    authentication: {
+      type: new mongoose.Schema({
+        cookies: {
+          type: Map,
+          of: String,
+          default: {}
         },
-        priority_mid: {
-            type: Number,
-            default: -1
-        },
-        priority_high: {
-            type: Number,
-            default: -1
+        token: {
+          type: [String],
+          default: []
         }
-    },
-    aiReport: {
-        type: String
-    },
-    updatedAt: {
-        type: Date,
-        default: Date.now,
-    },
-    createdAt: {
-        type: Date,
-        default: Date.now,
-    },
+      }, { _id: false })
+    }
+  },
+  estimatedTime: {
+    priority_low: { type: Number, default: -1 },
+    priority_mid: { type: Number, default: -1 },
+    priority_high: { type: Number, default: -1 }
+  },
+  updatedAt: {
+    type: Date,
+    default: Date.now,
+  },
+  createdAt: {
+    type: Date,
+    default: Date.now,
+  }
 }, { timestamps: true });
-
 
 UserSchema.pre("save", async function (next) {
   if (!this.isModified("password")) return next();
