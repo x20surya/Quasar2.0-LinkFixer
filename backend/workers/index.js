@@ -40,8 +40,12 @@ import { connectDB, Website } from "./db.js";
  *      VALUE :: number
  *      number of browsers currently working on a website_id
  * 
- *  `${uid}_domain`
- *      
+ *  SERVICES:DOWN
+ *      1 -> all services down, no scraper available
+ * 
+ *  reports
+ *      value -> as needed by coder for admin portal
+ *  
  *  
 */
 
@@ -174,7 +178,8 @@ try {
             browserChannel.consume(browserChannelQueue, async (msg_browser) => {
                 /*
                 *    browser : {
-                *        id
+                *        id,
+                *        failure
                 *    }
                 */
                 // wait for pupeteer intance to complete, by checking a queue or redis
@@ -205,20 +210,49 @@ try {
 
                 await statusSubscriber.subscribe(`${uid}_status`)
 
-                async function handleFailure() {
+                async function handleFailure(status = 1) {
                     console.log("Handling Failure")
                     await statusSubscriber.unsubscribe(`${uid}_status`).catch(() => { })
                     await statusSubscriber.quit().catch(() => { })
                     const activeBrowsers = await redis.decr(activeBrowserKey)
                     if (activeBrowsers <= 0) {
+                        console.log("Failure and 0 ACTIVE BROWSER\n")
+                        console.log(message)
                         if (Number(message.attempt) >= 3) {
                             // log FATAL ERROR and write error to Mongo
                             await redis.del(queuedKey)
                             await redis.del(activeBrowserKey)
                             channel.ack(msg_website)
+                            await redis.rpush(`reports`, JSON.stringify({
+                                trace: `/backend/workers/index.js`,
+                                level: `high`,
+                                type: `worker`,
+                                queue_name: queue,
+                                caller: `handleFailure()`,
+                                message: `handleFailure() called for ${browser.id}`
+                            }))
+                            try {
+                                await browserChannel.cancel(browserConsumerTag)
+                            } catch (err) {
+                                console.error("Error cancelling browser consumer:", err)
+                            }
                             for (const temp_msg of browser_message_batch) {
                                 try {
-                                    browserChannel.sendToQueue(browserChannelQueue, Buffer.from(temp_msg.content))
+                                    if (temp_msg === msg_browser) {
+                                        if (status === 0) browser.failure = Number(browser.failure) + 1
+                                        if (browser.failure < 3) { browserChannel.sendToQueue(browserChannelQueue, Buffer.from(JSON.stringify(browser))) }
+                                        else {
+                                            const remaining_browsers = await browserChannel.checkQueue(browserChannelQueue)
+                                            if(remaining_browsers.messageCount === 0){
+                                                console.log(`!!! NO SCRAPERS WORKING !!!`)
+                                                await redis.set(`SERVICES:DOWN`, 1)
+                                                channel.nack(msg_website)
+                                                return
+                                            }
+                                        }
+                                    } else {
+                                        browserChannel.sendToQueue(browserChannelQueue, Buffer.from(temp_msg.content))
+                                    }
                                     browserChannel.ack(temp_msg)
                                 } catch (err) {
                                     console.error("Error returning browser to pool:", err)
@@ -254,7 +288,7 @@ try {
                     return
                 }
 
-                let failureTimeout = setTimeout(handleFailure, 60000)
+                let failureTimeout = setTimeout(() => { handleFailure(0) }, 30000)
 
 
                 async function unsubscribe() {

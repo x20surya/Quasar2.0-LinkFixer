@@ -9,5 +9,5 @@ export async function servicesOnline(req, res, next) {
             error: "All services are currently down"
         }).status(503)
     }
-    next()
+    await next()
 }
