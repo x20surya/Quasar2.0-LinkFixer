@@ -19,9 +19,13 @@ router.post("/", auth, async (req, res) => {
   if (!link.includes("http")) {
     link = "http://" + link
   }
-  const url = new URL(link)
-
-  const domain = url.hostname
+  let url
+  try {
+    url = new URL(link)
+  } catch (err) {
+    return res.status(403).json({ error: `Invalid URL` })
+  }
+  const domain = url.origin
   if (!domain) {
     return res.status(400).json({ error: "Please provide a valid start URL" });
   }
