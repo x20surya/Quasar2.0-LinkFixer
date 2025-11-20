@@ -27,9 +27,12 @@ export default async function enqueue(queue_name, data) {
         await channel.sendToQueue(queue, Buffer.from(msg), {
             persistent: true
         })
+        const ret = await channel.checkQueue(queue)
         console.log(`${msg} pushed to ${queue}`)
+        return ret.messageCount
     } catch (err) {
         console.error("Error while enqueuing ::\nDestination : utils/scheduler/enqueue")
         console.error(err)
+        return -1
     }
 }
