@@ -35,19 +35,26 @@ const UserSchema = new mongoose.Schema({
     default: Date.now,
   },
   websites: [
-    new mongoose.Schema({
-      id: {
-        type: String,
-      },
-      domain: {
-        type: String,
-      },
-    }, { _id: false })
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: `Website`
+    }
   ],
 });
 
 const WebsiteSchema = new mongoose.Schema({
-  userID: [String],
+  userID: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: `User`
+  }],
+  ownerID: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: `User`
+  },
+  verifiedUsers: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: `User`
+  }],
   domain: {
     type: String,
     required: true,
