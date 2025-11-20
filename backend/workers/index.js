@@ -1,5 +1,5 @@
 import amqp from "amqplib"
-import { Redis } from 'ioredis'
+import { Redis } from "ioredis"
 import { connectDB, Website } from "./db.js";
 
 /**
@@ -133,7 +133,7 @@ try {
 
             const linkQueue = domain + "_links"
             const activeBrowserKey = `${websiteID}_active_browsers`
-            const queuedKey = `queued:${websiteID}`
+            const queuedKey = `queued:${domain}`
 
             console.log(`Recieved :: ${domain}, By :: ${queue}`)
 
