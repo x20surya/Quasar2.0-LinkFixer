@@ -1,5 +1,5 @@
 import amqp from "amqplib"
-import { Redis } from 'ioredis'
+import { Redis } from "ioredis"
 import { connectDB, Website } from "./db.js";
 
 /**
@@ -25,8 +25,7 @@ import { connectDB, Website } from "./db.js";
  * stores : stores links of puppeteer browser instances currently idle
  * format : browser : {
  *              id : unique
- *              link : hosted link of this instance
- *              endpoint : endpoint to assign queue name to the browser instance
+ *              failure
  *          }
  */
 
@@ -134,7 +133,7 @@ try {
 
             const linkQueue = domain + "_links"
             const activeBrowserKey = `${websiteID}_active_browsers`
-            const queuedKey = `queued:${websiteID}`
+            const queuedKey = `queued:${domain}`
 
             console.log(`Recieved :: ${domain}, By :: ${queue}`)
 

@@ -9,7 +9,7 @@ export const connectDB=async()=>{
         const connection=await mongoose.connect(mongoURL, {
             dbName : "linkfixerDB"
         })
-        console.log(`MongoDB connected: ${connection.connection.host}`)
+        console.log(`MongoDB connected`)
     }
     catch(error){
         console.log(`Error: ${error.message}`);

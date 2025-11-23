@@ -12,7 +12,7 @@ const Redis_URL = process.env.REDIS_PUBLIC_URL
 export const ID = process.env.INSTANCE_ID
 
 let pauseTimeStart = 0
-let pauseTimeEnd = 0
+let totalPauseTime = 0
 
 if (!ID) {
     console.error(`[${ID}] :: Instance ID not provided`)
@@ -42,7 +42,7 @@ catch (err) {
 }
 
 await pushBrowser.assertQueue("available_browsers")
-await pushBrowser.sendToQueue("available_browsers", Buffer.from(JSON.stringify({id : ID})))
+await pushBrowser.sendToQueue("available_browsers", Buffer.from(JSON.stringify({ id: ID })))
 console.log(`[${ID}] :: Browser pushed to queue`)
 
 redis.on("connect", () => console.log(`[${ID}] :: Client Connected to Railway Redis ✅`));
@@ -56,13 +56,13 @@ await subscriber.subscribe(`${ID}_domain`)
 setInterval(async () => {
     console.log(`[${ID}] :: Sending status = `, status)
     await redis.publish(`${ID}_status`, status)
-    if(status == -1){
+    if (status == -1) {
         status = 0
     }
 }, 7000)
 
 subscriber.on(`message`, (domainInfo, message) => {
-    if(domainInfo != `${ID}_domain`){
+    if (domainInfo != `${ID}_domain`) {
         console.log(`[${ID}] :: Invalid Sucscriber`)
         return;
     }
@@ -249,7 +249,9 @@ async function startConsumers(domain, linkQueue, authentication, maxPages = 3, l
         await channel.cancel(consumerTag)
         await browser.close();
         const endTime = Date.now();
-        const completionTime = (endTime - startTime) / 1000
+        let pauseTime = 0
+        if (pauseTimeStart !== 0) pauseTime = Date.now() - pauseTimeStart
+        const completionTime = (endTime - startTime - pauseTime) / 1000
         const tempTime = await redis.get(`${domain}_duration`)
         if (tempTime === null) {
             await redis.set(`${domain}_duration`, completionTime)
@@ -277,6 +279,8 @@ async function startConsumers(domain, linkQueue, authentication, maxPages = 3, l
         }
 
         console.log(`[${ID}] :: Completed Scraping for Domain :: ${domain} in ${completionTime} seconds`)
+        console.log(`Last pause time :::: ${pauseTime}`)
+        console.log(`Total pause Time ::: ${totalPauseTime + pauseTime}`)
         console.log(`[${ID}] :: Broken Links  ::: ${brokenLinks.length}`)
         console.log(brokenLinks)
 
@@ -286,6 +290,7 @@ async function startConsumers(domain, linkQueue, authentication, maxPages = 3, l
     async function setPauseBrowser(consumerTag) {
         if (!isPaused) {
             console.log(`[${ID}] :: Pausing Browser for Domain :: ` + domain)
+            pauseTimeStart = Date.now()
             isPaused = true
             const pausedSemaphore = await redis.decr(pauseStatusKey)
             console.log(`[${ID}] :: pausedSemaphore ::: `, pausedSemaphore)
@@ -324,6 +329,10 @@ async function startConsumers(domain, linkQueue, authentication, maxPages = 3, l
         } else {
             if (isPaused) {
                 isPaused = false
+                if (pauseTimeStart !== 0) {
+                    totalPauseTime += Date.now() - pauseTimeStart
+                    pauseTimeStart = 0
+                }
                 await redis.incr(pauseStatusKey)
             }
             clearTimeout(setPauseTimeout)
@@ -341,6 +350,8 @@ async function startConsumers(domain, linkQueue, authentication, maxPages = 3, l
         setPauseTimeout = setTimeout(() => { setPauseBrowser(consumerTag) }, 10000)
     }
     const { consumerTag } = await channel.consume(linkQueue, async (msg) => {
+
+
 
         try {
             const page = await fetchPage()

@@ -26,6 +26,7 @@ services:
       - BREVO_KEY=${BREVO_KEY}
       - AI_API_KEY=${AI_API_KEY}
       - RABBITMQ_URL=${RABBITMQ_URL}
+      - JWT_VERFICATION_SECRET=${JWT_VERFICATION_SECRET}
 
   rabbitmq:
     env_file:

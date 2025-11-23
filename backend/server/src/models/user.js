@@ -1,4 +1,4 @@
-import mongoose from "mongoose";
+import mongoose, { Schema } from "mongoose";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { v4 as uuidv4 } from 'uuid';
@@ -36,18 +36,25 @@ const UserSchema = new mongoose.Schema({
   },
   websites: [
     {
-      id: {
-        type: String,
-      },
-      domain: {
-        type: String,
-      },
+      type: mongoose.Schema.Types.ObjectId,
+      ref: `Website`
     }
   ],
 });
 
 const WebsiteSchema = new mongoose.Schema({
-  userID: String,
+  userID: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: `User`
+  }],
+  ownerID: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: `User`
+  },
+  verifiedUsers: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: `User`
+  }],
   domain: {
     type: String,
     required: true,
