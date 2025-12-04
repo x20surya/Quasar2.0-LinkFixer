@@ -1,9 +1,59 @@
-import React, { useState } from "react"
+import React, { useEffect, useRef, useState } from "react"
 import { Sparkles, Zap, Shield, FileText } from "lucide-react"
 import BubbleCleaner from "../../components/background/BubbleCleaner"
 
+interface CursorPosition {
+  x: number
+  y: number
+  id?: number
+}
+
 const Home = () => {
   const [url, setUrl] = useState("")
+  const containerRef = useRef<HTMLDivElement>(null)
+  const [cursorTrail, setCursorTrail] = useState<CursorPosition[]>([])
+  const colorIndex = useRef<number>(0)
+  const colors: string[] = ["#ff0000", "#00ff00", "#0000ff"]
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (containerRef.current) {
+        const rect = containerRef.current.getBoundingClientRect()
+        const newPos: CursorPosition = {
+          x: e.clientX - rect.left,
+          y: e.clientY - rect.top,
+        }
+
+        // Add to trail with timestamp
+        setCursorTrail((prev) => {
+          const newTrail = [
+            ...prev,
+            { ...newPos, id: Date.now() + Math.random() },
+          ]
+          return newTrail.slice(-10) // Keep last 15 positions for longer trail
+        })
+      }
+    }
+
+    const container = containerRef.current
+    if (container) {
+      container.addEventListener("mousemove", handleMouseMove)
+      return () => container.removeEventListener("mousemove", handleMouseMove)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (cursorTrail.length === 0) {
+      colorIndex.current = (colorIndex.current + 1) % colors.length
+      return
+    }
+
+    const timeout = setTimeout(() => {
+      setCursorTrail((prev) => prev.slice(1))
+    }, 50) // Remove one trail point every 50ms
+
+    return () => clearTimeout(timeout)
+  }, [cursorTrail])
 
   interface HandleSubmit {
     (e: React.FormEvent<HTMLFormElement>): void
@@ -22,24 +72,42 @@ const Home = () => {
 
   return (
     <div
+      ref={containerRef}
       className={`min-h-screen transition-colors duration-300 relative overflow-hidden
           bg-linear-to-br from-pink-50 via-purple-50 to-blue-50`}
     >
-      {/* Conic gradient orbs - subtle */}
-      <div className="absolute top-0 left-1/4 w-96 h-96 bg-gradient-conic from-purple-400 via-pink-400 to-blue-400 rounded-full opacity-25 blur-3xl"></div>
-      <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-gradient-conic from-blue-400 via-purple-400 to-pink-400 rounded-full opacity-25 blur-3xl"></div>
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-gradient-conic from-pink-300 via-purple-300 to-blue-300 rounded-full opacity-20 blur-3xl animate-pulse"></div>
+      <svg
+        className="absolute pointer-events-none"
+        style={{
+          top: 0,
+          left: 0,
+          width: "100%",
+          height: "100%",
+          zIndex: 100,
+        }}
+      >
+        {cursorTrail.length > 1 &&
+          cursorTrail.slice(1).map((pos, index) => {
+            const prevPos = cursorTrail[index]
 
-      {/* Floating orbs with animation - subtle */}
-      <div className="absolute top-20 left-8 w-32 h-32 bg-linear-to-br from-purple-300 to-pink-300 rounded-full opacity-35 blur-2xl animate-float"></div>
-      <div className="absolute top-40 right-12 w-40 h-40 bg-linear-to-br from-pink-300 to-blue-300 rounded-full opacity-35 blur-2xl animate-float-delayed"></div>
-      <div className="absolute bottom-32 right-1/4 w-36 h-36 bg-linear-to-br from-blue-300 to-purple-300 rounded-full opacity-35 blur-2xl animate-float-slow"></div>
-      <div className="absolute bottom-40 left-12 w-28 h-28 bg-linear-to-br from-purple-400 to-blue-400 rounded-full opacity-30 blur-2xl animate-float"></div>
+            return (
+              <line
+                key={`${pos.id}-${index}`}
+                x1={prevPos.x}
+                y1={prevPos.y}
+                x2={pos.x}
+                y2={pos.y}
+                stroke={colors[colorIndex.current]}
+                strokeWidth={6}
+                opacity={1}
+                strokeLinecap="round"
+              />
+            )
+          })}
+      </svg>
 
-      {/* Main content */}
       <BubbleCleaner>
         <div className="relative flex flex-col items-center justify-center min-h-screen px-4 py-20">
-          {/* Badge */}
           <div className="mb-8 inline-flex items-center gap-2 px-4 py-2 bg-white/80 backdrop-blur-sm rounded-full shadow-md">
             <Sparkles className="w-4 h-4 text-purple-600" />
             <span className="text-sm font-medium text-purple-600">
@@ -47,7 +115,6 @@ const Home = () => {
             </span>
           </div>
 
-          {/* Heading */}
           <h1
             className={`text-5xl md:text-7xl font-bold text-center mb-4 text-gray-900`}
           >
@@ -89,34 +156,28 @@ const Home = () => {
           <div className="flex flex-wrap items-center justify-center gap-4">
             <div className="flex items-center gap-2 px-5 py-3 bg-white/80 backdrop-blur-sm rounded-full shadow-md">
               <Zap className="w-5 h-5 text-purple-500" />
-              <span
-                className={`text-sm font-medium text-gray-700`}
-              >
+              <span className={`text-sm font-medium text-gray-700`}>
                 Instant Results
               </span>
             </div>
 
             <div className="flex items-center gap-2 px-5 py-3 bg-white/80 backdrop-blur-sm rounded-full shadow-md">
               <Shield className="w-5 h-5 text-blue-500" />
-              <span
-                className={`text-sm font-medium text-gray-700`}
-              >
+              <span className={`text-sm font-medium text-gray-700`}>
                 Secure Analysis
               </span>
             </div>
 
             <div className="flex items-center gap-2 px-5 py-3 bg-white/80 backdrop-blur-sm rounded-full shadow-md">
               <FileText className="w-5 h-5 text-pink-500" />
-              <span
-                className={`text-sm font-medium text-gray-700`}
-              >
+              <span className={`text-sm font-medium text-gray-700`}>
                 Detailed Reports
               </span>
             </div>
           </div>
         </div>
       </BubbleCleaner>
-
+      <div className=" h-screen"></div>
     </div>
   )
 }
