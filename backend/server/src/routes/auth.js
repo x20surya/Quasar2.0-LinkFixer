@@ -70,30 +70,86 @@ router.post("/register", async (req, res) => {
   }
 });
 
+router.get("/verifyAuth", auth, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id).select("-password");
+    
+    if (!user) {
+      return res.status(404).json({ 
+        authenticated: false, 
+        error: "User not found" 
+      });
+    }
+
+    return res.json({
+      authenticated: true,
+      user: {
+        id: user._id,
+        username: user.username,
+        email: user.email,
+        emailVerified: user.emailVerified,
+      }
+    });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ 
+      authenticated: false, 
+      error: "Server error" 
+    });
+  }
+});
+
+// routes/auth.js
+router.post("/logout", (req, res) => {
+  try {
+    res.clearCookie('token', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict'
+    });
+    
+    return res.json({ 
+      success: true, 
+      msg: "Logged out successfully" 
+    });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
 // works
 router.post("/login", async (req, res) => {
   const { email, password } = req.body;
 
   try {
     const user = await User.findOne({ email });
+    console.log("Hit Login")
+    console.log(email)
+    console.log(user)
     if (!user) {
       return res.status(400).json({ msg: "Invalid credentials" });
     }
     const isMatch = await user.comparePassword(password);
     if (!isMatch) {
-      return res.status(400).json({ msg: "Invalid credentials" });
+      return res.status(400).json({ msg: "Wrong Email or Password" });
     }
     const token = user.generateAuthToken();
 
     if (!user.emailVerified) {
-      return res.json({
+      return res.status(401).json({
         success: false,
         error: "Login unsuccessful. Please verify your email.",
-      }).status(401);
+      });
     } else {
-      return res.json({
+      console.log("RES.JSON")
+      res.cookie('token', token, {
+        httpOnly : true,
+        sameSite : 'strict',
+        maxAge : 7*24*60*60*1000
+      })
+      return res.status(200).json({
         success: true,
-        token,
         user: {
           id: user._id,
           username: user.username,
