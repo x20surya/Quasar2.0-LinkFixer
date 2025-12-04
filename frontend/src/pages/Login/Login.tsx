@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react"
 import { validator } from "../../utils/validator"
 import banner from "../../assets/Untitled design-min.png"
 import logo from "../../assets/logo.png"
+import { logInUser } from "../../api/auth/login"
 // import Typography from "../../components/background/Typography"
 
 function Login() {
@@ -15,7 +16,8 @@ function Login() {
   const [passwordErrorMessage, setPasswordErrorMessage] =
     useState<string>("Error")
 
-  const handleSubmit = () => {
+  const handleSubmit = async (e :  React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
     const emailValue = emailInput.current?.value
     const passwordValue = passwordInput.current?.value
 
@@ -36,11 +38,15 @@ function Login() {
       return
     }
 
-    if (!validator(passwordValue, "password")) {
-      // trigger global error popup as either password or mail is wrong
-    }
+    // if (!validator(passwordValue, "password")) {
+    //   // trigger global error popup as either password or mail is wrong
+    // }
+    console.log(emailValue)
+    console.log(passwordValue)
+    const res = await logInUser(emailValue, passwordValue)
+    console.log(res)
 
-    alert(`${emailValue} ${passwordValue}`)
+    
   }
 
   useEffect(() => {
@@ -65,7 +71,6 @@ function Login() {
         }
         if (document.activeElement === passwordInput.current) {
           e.preventDefault()
-          handleSubmit()
           passwordInput.current?.blur()
         }
       }
@@ -107,75 +112,76 @@ function Login() {
           alt="logo"
           className=" w-60 left-5 m-0 p-0 absolute top-10"
         />
-        <label className=" w-full h-5 font-semibold text-md font-sans mb-1">
-          Email
-        </label>
-        <input
-          ref={emailInput}
-          placeholder="Email"
-          onChange={() => {
-            if (emailErrorState) {
-              setEmailErrorState(false)
-              setEmailErrorMessage("")
-            }
-          }}
-          className="border-2 w-full h-12 rounded-sm text-md pl-2 font-semibold"
-          style={{
-            borderColor: !emailErrorState
-              ? `rgba(200,200,200,1)`
-              : `rgba(255, 0, 0, 1)`,
-          }}
-        />
-        {emailErrorState ? (
-          <h3 className=" w-full px-3 text-red-500 font-semibold font-mono py-0 text-md">
-            {emailErrorMessage}
-          </h3>
-        ) : (
-          <div className=" h-3" />
-        )}
-        <label className=" w-full h-5 font-semibold text-md font-sans mb-1">
-          Password
-        </label>
+        <form className=" w-full" onSubmit={handleSubmit}>
+          <label className=" w-full h-5 font-semibold text-md font-sans mb-1">
+            Email
+          </label>
+          <input
+            ref={emailInput}
+            placeholder="Email"
+            onChange={() => {
+              if (emailErrorState) {
+                setEmailErrorState(false)
+                setEmailErrorMessage("")
+              }
+            }}
+            className="border-2 w-full h-12 rounded-sm text-md pl-2 font-semibold"
+            style={{
+              borderColor: !emailErrorState
+                ? `rgba(200,200,200,1)`
+                : `rgba(255, 0, 0, 1)`,
+            }}
+          />
+          {emailErrorState ? (
+            <h3 className=" w-full px-3 text-red-500 font-semibold font-mono py-0 text-md">
+              {emailErrorMessage}
+            </h3>
+          ) : (
+            <div className=" h-3" />
+          )}
+          <label className=" w-full h-5 font-semibold text-md font-sans mb-1">
+            Password
+          </label>
 
-        <input
-          ref={passwordInput}
-          placeholder="Password"
-          type="password"
-          className="border-2 w-full h-12 rounded-sm text-md pl-2 font-semibold"
-          onChange={() => {
-            if (passwordErrorState) {
-              setPasswordErrorState(false)
-              setPasswordErrorMessage("")
-            }
-          }}
-          style={{
-            borderColor: !passwordErrorState
-              ? `rgba(200,200,200,1)`
-              : `rgba(255, 0, 0, 1)`,
-          }}
-        />
-        {passwordErrorState ? (
-          <h3 className=" w-84 h-6 px-3 text-red-500 font-semibold font-mono py-0 text-md">
-            {passwordErrorMessage}
-          </h3>
-        ) : (
-          <div className=" h-3" />
-        )}
-        <button
-          onClick={handleSubmit}
-          className=" bg-amber-500 h-12 w-full text-white border-2 border-white translate-1 hover:translate-0 hover:border-black text-lg my-2 font-bold rounded-lg duration-300 transition-all"
-        >
-          Login
-        </button>
+          <input
+            ref={passwordInput}
+            placeholder="Password"
+            type="password"
+            className="border-2 w-full h-12 rounded-sm text-md pl-2 font-semibold"
+            onChange={() => {
+              if (passwordErrorState) {
+                setPasswordErrorState(false)
+                setPasswordErrorMessage("")
+              }
+            }}
+            style={{
+              borderColor: !passwordErrorState
+                ? `rgba(200,200,200,1)`
+                : `rgba(255, 0, 0, 1)`,
+            }}
+          />
+          {passwordErrorState ? (
+            <h3 className=" w-84 h-6 px-3 text-red-500 font-semibold font-mono py-0 text-md">
+              {passwordErrorMessage}
+            </h3>
+          ) : (
+            <div className=" h-3" />
+          )}
+          <button
+            type="submit"
+            className=" bg-amber-500 h-12 w-full text-white border-2 border-white translate-1 hover:translate-0 hover:border-black text-lg my-2 font-bold rounded-lg duration-300 transition-all"
+          >
+            Login
+          </button>
+        </form>
         <div className=" flex h-3 flex-row w-[85%] items-center gap-2">
           <div className=" w-full bg-[#8f8f8f] h-px" />
           <h1 className=" text-[#8f8f8f]">or</h1>
           <div className=" w-full bg-[#8f8f8f] h-px" />
         </div>
         <button
-          onClick={handleSubmit}
+          onClick={() => {}}
           className=" bg-amber-500 h-12 w-full text-white border-2 border-white translate-1 hover:translate-0 hover:border-black text-lg my-2 font-bold rounded-lg duration-300 transition-all"
-          
         >
           Google
         </button>

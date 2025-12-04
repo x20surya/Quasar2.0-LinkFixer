@@ -1,21 +1,24 @@
-import axios from "axios"
-import links from "../../common/links.json"
-
+import api from "../instance"
 type SignInUser = (email: string, password: string) => Promise<boolean>
+
+
 
 export const logInUser: SignInUser = async (email, password) => {
   try {
-    const res = await axios.post(links.BACKEND_LOGIN, {
-      body: {
-        email,
-        password,
+    console.log("Sending login request")
+    const res = await api.post(
+      "/auth/login", 
+      { email, password },
+      {
+        headers: {
+          'Content-Type': 'application/json'
+        }
       }
-    })
+    )
     console.log(res.data)
-    alert(res.data)
-    return true
+    return res.data
   } catch (err) {
     console.log(err)
+    return null
   }
-  return false
 }
