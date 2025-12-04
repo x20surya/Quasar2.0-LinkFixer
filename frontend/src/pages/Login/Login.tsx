@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react"
 import { validator } from "../../utils/validator"
 import banner from "../../assets/Untitled design-min.png"
 import logo from "../../assets/logo.png"
+// import Typography from "../../components/background/Typography"
 
 function Login() {
   const emailInput = useRef<HTMLInputElement | null>(null)
@@ -95,12 +96,12 @@ function Login() {
 
   return (
     <div
-      className=" w-full h-screen flex justify-center md:justify-start items-center"
+      className=" w-full h-screen flex justify-center md:justify-start "
       style={{
         backgroundImage: `url(${banner})`,
       }}
     >
-      <div className=" bg-white/95 w-full flex flex-col h-screen items-center px-4 py-10 md:min-w-[300px] md:w-[20%] md:h-screen justify-center relative">
+      <div className=" bg-white shadow-[8px_0px_3px_0px_rgba(0,0,0,0.3)] w-full flex flex-col h-screen items-center px-4 py-10 md:min-w-[300px] md:w-[20%] md:h-screen justify-center relative">
         <img
           src={logo}
           alt="logo"
@@ -162,7 +163,7 @@ function Login() {
         )}
         <button
           onClick={handleSubmit}
-          className=" bg-amber-500 h-12 w-full text-lg my-2 font-bold rounded-lg"
+          className=" bg-amber-500 h-12 w-full text-white border-2 border-white translate-1 hover:translate-0 hover:border-black text-lg my-2 font-bold rounded-lg duration-300 transition-all"
         >
           Login
         </button>
@@ -173,11 +174,21 @@ function Login() {
         </div>
         <button
           onClick={handleSubmit}
-          className=" bg-amber-500 h-12 w-full text-lg my-2 font-bold rounded-lg"
+          className=" bg-amber-500 h-12 w-full text-white border-2 border-white translate-1 hover:translate-0 hover:border-black text-lg my-2 font-bold rounded-lg duration-300 transition-all"
+          
         >
           Google
         </button>
       </div>
+      {/* <div className=" w-[419px] h-50 bg-[#3bb56c] hidden md:block">
+        <Typography
+          texts={["Website Health check made easy", "Join now"]}
+          className={[
+            "hidden md:block font-extrabold font-mono text-5xl ml-10 mt-10 text-white [text-shadow:5px_5px_1px_rgba(0,0,0,0.8)]",
+            "hidden md:block font-extrabold font-mono text-5xl ml-10 mt-10 text-white [text-shadow:5px_5px_1px_rgba(0,0,0,0.8)]",
+          ]}
+        />
+      </div> */}
     </div>
   )
 }

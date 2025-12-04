@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router';
 import { Menu, X } from 'lucide-react';
+import logo from "../../assets/logo.png"
 
 const Header = () => {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -37,9 +38,13 @@ const Header = () => {
             to="/"
             className="transition-all hover:scale-105 active:scale-95"
           >
-            <div className="text-2xl font-bold bg-linear-to-r from-green-500 to-yellow-400 bg-clip-text text-transparent">
-              makora
-            </div>
+            <img 
+            src={logo}
+            alt="logo_makora"
+            style={{
+                width: 130
+            }}
+            />
           </Link>
 
           {/* Desktop Navigation */}
