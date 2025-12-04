@@ -1,5 +1,3 @@
-import type { HandleSubmit } from "../../pages/Home/Home"
-
 type GradientButtonInput = {
   icon?: React.ReactNode
   message: string

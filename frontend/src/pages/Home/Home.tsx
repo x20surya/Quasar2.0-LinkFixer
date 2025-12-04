@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from "react"
 import { Sparkles, Zap, Shield, FileText } from "lucide-react"
 import BubbleCleaner from "../../components/background/BubbleCleaner"
 import GradientButton from "../../components/button/GradientButton"
+import Header from "../../components/header/Header"
 
 type CursorPosition = {
   x: number
@@ -77,6 +78,7 @@ const Home = () => {
       className={`min-h-screen transition-colors duration-300 relative overflow-hidden
           bg-linear-to-br from-pink-50 via-purple-50 to-blue-50`}
     >
+      <Header/>
       <svg
         className="absolute pointer-events-none"
         style={{
@@ -178,7 +180,6 @@ const Home = () => {
           </div>
         </div>
       </BubbleCleaner>
-      <div className=" h-screen"></div>
     </div>
   )
 }
