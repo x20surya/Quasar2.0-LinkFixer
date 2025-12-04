@@ -41,9 +41,12 @@ const BubbleCleaner: React.FC<BubbleCleanerProps> = ({ children }) => {
   const [errorBubbles, setErrorBubbles] = useState<ErrorBubble[]>([]);
   const [greenBubbles, setGreenBubbles] = useState<GreenBubble[]>([{ x: 50, y: 50, targetIndex: 0, id: 1 }]);
   const [tickMarks, setTickMarks] = useState<TickMark[]>([]);
-  const [cursorPos, setCursorPos] = useState<CursorPosition>({ x: 0, y: 0 });
   const [cursorTrail, setCursorTrail] = useState<CursorPosition[]>([]);
   const containerRef = useRef<HTMLDivElement>(null);
+  const colorIndex = useRef<number>(0)
+  const colors : string[ ] = [
+    "#ff0000", "#00ff00", "#0000ff"
+  ]
   
   const errorCodes: string[] = [
     'ERR_404', 'ERR_500', 'ERR_403', 'ERR_502', 'ERR_401',
@@ -58,12 +61,11 @@ const BubbleCleaner: React.FC<BubbleCleanerProps> = ({ children }) => {
           x: e.clientX - rect.left,
           y: e.clientY - rect.top
         };
-        setCursorPos(newPos);
         
         // Add to trail with timestamp
         setCursorTrail(prev => {
           const newTrail = [...prev, { ...newPos, id: Date.now() + Math.random() }];
-          return newTrail.slice(-15); // Keep last 15 positions for longer trail
+          return newTrail.slice(-10); // Keep last 15 positions for longer trail
         });
       }
     };
@@ -133,7 +135,7 @@ const BubbleCleaner: React.FC<BubbleCleanerProps> = ({ children }) => {
           };
         });
       });
-    }, 16);
+    }, 10);
 
     return () => clearInterval(interval);
   }, [errorBubbles, greenBubbles.length]);
@@ -151,7 +153,10 @@ const BubbleCleaner: React.FC<BubbleCleanerProps> = ({ children }) => {
 
   // Fade out cursor trail after inactivity
   useEffect(() => {
-    if (cursorTrail.length === 0) return;
+    if (cursorTrail.length === 0) {
+      colorIndex.current = (colorIndex.current + 1) % colors.length
+      return;
+    }
     
     const timeout = setTimeout(() => {
       setCursorTrail(prev => prev.slice(1));
@@ -211,7 +216,7 @@ const BubbleCleaner: React.FC<BubbleCleanerProps> = ({ children }) => {
               y1={prevPos.y}
               x2={pos.x}
               y2={pos.y}
-              stroke="#ff0000"
+              stroke={colors[colorIndex.current]}
               strokeWidth={6}
               opacity={1}
               strokeLinecap="round"
@@ -219,16 +224,6 @@ const BubbleCleaner: React.FC<BubbleCleanerProps> = ({ children }) => {
           );
         })}
       </svg>
-      
-      {/* Cursor tracker */}
-      <div
-        className="absolute w-3 h-3 bg-red-500 rounded-full pointer-events-none"
-        style={{
-          left: cursorPos.x - 6,
-          top: cursorPos.y - 6,
-          zIndex: 101
-        }}
-      />
 
       {/* Error bubbles */}
       {errorBubbles.map((bubble) => (

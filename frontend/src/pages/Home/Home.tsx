@@ -1,5 +1,5 @@
 import React, { useState } from "react"
-import { Sparkles, Zap, Shield, FileText, Moon } from "lucide-react"
+import { Sparkles, Zap, Shield, FileText } from "lucide-react"
 import BubbleCleaner from "../../components/background/BubbleCleaner"
 
 const Home = () => {
@@ -117,9 +117,6 @@ const Home = () => {
         </div>
       </BubbleCleaner>
 
-      <section className=" h-screen">
-
-      </section>
     </div>
   )
 }
