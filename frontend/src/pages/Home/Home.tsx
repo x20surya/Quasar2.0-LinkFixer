@@ -1,11 +1,19 @@
 import React, { useEffect, useRef, useState } from "react"
 import { Sparkles, Zap, Shield, FileText } from "lucide-react"
 import BubbleCleaner from "../../components/background/BubbleCleaner"
+import GradientButton from "../../components/button/GradientButton"
 
-interface CursorPosition {
+type CursorPosition = {
   x: number
   y: number
   id?: number
+}
+export type HandleSubmit = {
+  (e: React.FormEvent<HTMLFormElement>): void
+}
+
+interface AnalyzePayload {
+  url: string
 }
 
 const Home = () => {
@@ -55,13 +63,6 @@ const Home = () => {
     return () => clearTimeout(timeout)
   }, [cursorTrail])
 
-  interface HandleSubmit {
-    (e: React.FormEvent<HTMLFormElement>): void
-  }
-
-  interface AnalyzePayload {
-    url: string
-  }
 
   const handleSubmit: HandleSubmit = (e) => {
     e.preventDefault()
@@ -109,8 +110,8 @@ const Home = () => {
       <BubbleCleaner>
         <div className="relative flex flex-col items-center justify-center min-h-screen px-4 py-20">
           <div className="mb-8 inline-flex items-center gap-2 px-4 py-2 bg-white/80 backdrop-blur-sm rounded-full shadow-md">
-            <Sparkles className="w-4 h-4 text-purple-600" />
-            <span className="text-sm font-medium text-purple-600">
+            <Sparkles className="w-4 h-4 text-yellow-500" />
+            <span className="text-sm font-medium text-green-800">
               AI-Powered Website Analysis
             </span>
           </div>
@@ -120,7 +121,7 @@ const Home = () => {
           >
             Website Health
           </h1>
-          <h1 className="text-5xl md:text-7xl font-bold text-center mb-6 bg-linear-to-r from-purple-600 via-pink-500 to-blue-500 bg-clip-text text-transparent">
+          <h1 className="text-5xl md:text-7xl font-bold text-center mb-6 [text-shadow:-5px_-5px_0px_rgba(0,0,0,0.8)] hover:[text-shadow:0px_0px_0px_rgba(0,0,0,0)] bg-linear-to-r from-green-500 via-yellow-300 to-green-500 bg-clip-text text-transparent duration-100">
             Checkup
           </h1>
 
@@ -140,36 +141,36 @@ const Home = () => {
                 value={url}
                 onChange={(e) => setUrl(e.target.value)}
                 placeholder="Enter your website URL (e.g., https://example.com)"
-                className="flex-1 px-6 py-4 rounded-xl border-2 border-gray-200 focus:border-purple-400 focus:outline-none bg-white/80 backdrop-blur-sm shadow-lg transition-all"
+                className="flex-1 px-6 py-4 rounded-xl border-2 border-gray-200 focus:border-green-400 focus:outline-none bg-white/80 backdrop-blur-sm shadow-lg transition-all"
               />
-              <button
-                type="submit"
-                className="px-8 py-4 bg-linear-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-medium rounded-xl shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2 whitespace-nowrap"
-              >
-                <Sparkles className="w-5 h-5" />
-                Get Started
-              </button>
+              <GradientButton 
+                message="Get Started"
+                isForm={true}
+                hover={true}
+                className="duration-50"
+                icon={<Sparkles className="w-5 h-5" />}
+              />
             </div>
           </form>
 
           {/* Feature badges */}
           <div className="flex flex-wrap items-center justify-center gap-4">
             <div className="flex items-center gap-2 px-5 py-3 bg-white/80 backdrop-blur-sm rounded-full shadow-md">
-              <Zap className="w-5 h-5 text-purple-500" />
+              <Zap className="w-5 h-5 text-green-500" />
               <span className={`text-sm font-medium text-gray-700`}>
                 Instant Results
               </span>
             </div>
 
             <div className="flex items-center gap-2 px-5 py-3 bg-white/80 backdrop-blur-sm rounded-full shadow-md">
-              <Shield className="w-5 h-5 text-blue-500" />
+              <Shield className="w-5 h-5 text-orange-500" />
               <span className={`text-sm font-medium text-gray-700`}>
                 Secure Analysis
               </span>
             </div>
 
             <div className="flex items-center gap-2 px-5 py-3 bg-white/80 backdrop-blur-sm rounded-full shadow-md">
-              <FileText className="w-5 h-5 text-pink-500" />
+              <FileText className="w-5 h-5 text-yellow-400" />
               <span className={`text-sm font-medium text-gray-700`}>
                 Detailed Reports
               </span>

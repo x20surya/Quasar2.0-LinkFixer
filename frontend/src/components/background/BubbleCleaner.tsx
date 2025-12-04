@@ -142,7 +142,7 @@ const BubbleCleaner: React.FC<BubbleCleanerProps> = ({ children }) => {
     <div 
       ref={containerRef}
       onClick={handleClick}
-      className="relative w-full h-screen bg-linear-to-br from-blue-50 via-purple-50 to-pink-50 overflow-hidden cursor-crosshair"
+      className="relative w-full h-screen bg-linear-to-br from-green-50 via-yellow-50 to-green-50 overflow-hidden cursor-crosshair"
       style={{
         backgroundImage: 'radial-gradient(circle, #e0e7ff 1px, transparent 1px)',
         backgroundSize: '20px 20px'
