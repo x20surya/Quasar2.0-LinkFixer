@@ -9,13 +9,22 @@ if (!rabbitURL) {
     process.exit(1)
 }
 let channel, connection
-try {
-    connection = await ampq.connect(rabbitURL)
-    channel = await connection.createChannel()
-} catch (err) {
-    console.log(`Error in connecting to rabbitMQ`)
+
+let connectTimeout 
+
+async function connect() {
+    try {
+        connection = await ampq.connect(rabbitURL)
+        channel = await connection.createChannel()
+        clearTimeout(connectTimeout)
+        console.log("Connected to RabbitMQ")
+    } catch (err) {
+        console.log(`Error in connecting to rabbitMQ`)
+        connectTimeout = setTimeout(connect, 5000)
+    }
 }
 
+connect()
 
 export default async function enqueue(queue_name, data) {
     const queue = queue_name

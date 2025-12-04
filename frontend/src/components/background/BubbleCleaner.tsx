@@ -22,12 +22,6 @@ interface TickMark {
   id: number;
 }
 
-interface CursorPosition {
-  x: number;
-  y: number;
-  id?: number;
-}
-
 interface BubbleCleanerProps {
   children?: React.ReactNode;
 }
@@ -41,39 +35,12 @@ const BubbleCleaner: React.FC<BubbleCleanerProps> = ({ children }) => {
   const [errorBubbles, setErrorBubbles] = useState<ErrorBubble[]>([]);
   const [greenBubbles, setGreenBubbles] = useState<GreenBubble[]>([{ x: 50, y: 50, targetIndex: 0, id: 1 }]);
   const [tickMarks, setTickMarks] = useState<TickMark[]>([]);
-  const [cursorPos, setCursorPos] = useState<CursorPosition>({ x: 0, y: 0 });
-  const [cursorTrail, setCursorTrail] = useState<CursorPosition[]>([]);
   const containerRef = useRef<HTMLDivElement>(null);
   
   const errorCodes: string[] = [
     'ERR_404', 'ERR_500', 'ERR_403', 'ERR_502', 'ERR_401',
     'ERR_503', 'ERR_408', 'ERR_429', 'ERR_504', 'ERR_400'
   ];
-
-  useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
-      if (containerRef.current) {
-        const rect = containerRef.current.getBoundingClientRect();
-        const newPos: CursorPosition = {
-          x: e.clientX - rect.left,
-          y: e.clientY - rect.top
-        };
-        setCursorPos(newPos);
-        
-        // Add to trail with timestamp
-        setCursorTrail(prev => {
-          const newTrail = [...prev, { ...newPos, id: Date.now() + Math.random() }];
-          return newTrail.slice(-15); // Keep last 15 positions for longer trail
-        });
-      }
-    };
-
-    const container = containerRef.current;
-    if (container) {
-      container.addEventListener('mousemove', handleMouseMove);
-      return () => container.removeEventListener('mousemove', handleMouseMove);
-    }
-  }, []);
 
   useEffect(() => {
     if (errorBubbles.length === 0) return;
@@ -133,7 +100,7 @@ const BubbleCleaner: React.FC<BubbleCleanerProps> = ({ children }) => {
           };
         });
       });
-    }, 16);
+    }, 10);
 
     return () => clearInterval(interval);
   }, [errorBubbles, greenBubbles.length]);
@@ -150,15 +117,6 @@ const BubbleCleaner: React.FC<BubbleCleanerProps> = ({ children }) => {
   }, [tickMarks]);
 
   // Fade out cursor trail after inactivity
-  useEffect(() => {
-    if (cursorTrail.length === 0) return;
-    
-    const timeout = setTimeout(() => {
-      setCursorTrail(prev => prev.slice(1));
-    }, 50); // Remove one trail point every 50ms
-    
-    return () => clearTimeout(timeout);
-  }, [cursorTrail]);
 
   const handleClick = (e: React.MouseEvent<HTMLDivElement>) => {
     // Check if click is on the content area
@@ -184,51 +142,14 @@ const BubbleCleaner: React.FC<BubbleCleanerProps> = ({ children }) => {
     <div 
       ref={containerRef}
       onClick={handleClick}
-      className="relative w-full h-screen bg-linear-to-br from-blue-50 via-purple-50 to-pink-50 overflow-hidden cursor-crosshair"
+      className="relative w-full h-screen bg-linear-to-br from-green-50 via-yellow-50 to-green-50 overflow-hidden cursor-crosshair"
       style={{
         backgroundImage: 'radial-gradient(circle, #e0e7ff 1px, transparent 1px)',
         backgroundSize: '20px 20px'
       }}
     >
       {/* Cursor trail - DEBUGGING */}
-      <svg
-        className="absolute pointer-events-none"
-        style={{ 
-          top: 0, 
-          left: 0, 
-          width: '100%', 
-          height: '100%',
-          zIndex: 100
-        }}
-      >
-        {cursorTrail.length > 1 && cursorTrail.slice(1).map((pos, index) => {
-          const prevPos = cursorTrail[index];
-          
-          return (
-            <line
-              key={`${pos.id}-${index}`}
-              x1={prevPos.x}
-              y1={prevPos.y}
-              x2={pos.x}
-              y2={pos.y}
-              stroke="#ff0000"
-              strokeWidth={6}
-              opacity={1}
-              strokeLinecap="round"
-            />
-          );
-        })}
-      </svg>
       
-      {/* Cursor tracker */}
-      <div
-        className="absolute w-3 h-3 bg-red-500 rounded-full pointer-events-none"
-        style={{
-          left: cursorPos.x - 6,
-          top: cursorPos.y - 6,
-          zIndex: 101
-        }}
-      />
 
       {/* Error bubbles */}
       {errorBubbles.map((bubble) => (
