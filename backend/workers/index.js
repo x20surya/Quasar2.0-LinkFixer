@@ -126,6 +126,7 @@ try {
                 return
             }
 
+
             const websiteID = currWebsite.id
             const domain = currWebsite.domain
             const sitemapLinks = currWebsite.sitemapLinks
@@ -134,6 +135,7 @@ try {
             const linkQueue = domain + "_links"
             const activeBrowserKey = `${websiteID}_active_browsers`
             const queuedKey = `queued:${domain}`
+            console.log(queuedKey)
 
             console.log(`Recieved :: ${domain}, By :: ${queue}`)
 

@@ -9,7 +9,6 @@ router.post("/", auth, async (req, res) => {
   let { link } = req.body;
   const user = await User.findById(req.user.id)
     .select("-password")
-    .populate("websites");
   if (!user) {
     return res.status(404).json({ error: "User not found" });
   }
@@ -35,8 +34,9 @@ router.post("/", auth, async (req, res) => {
   })
 
   if (website !== null) {
+    console.log("Website found")
 
-    if (user.websites.some((website) => website.domain === domain)) {
+    if (user.websites.some((web) => web.toString() === website.id)) {
       return res.status(400).json({ error: "Website already added to user" });
     }
     user.websites.push({
@@ -60,10 +60,10 @@ router.post("/", auth, async (req, res) => {
 
   let reports = {}
 
-  if (user.websites.some((website) => website.domain === domain)) {
-    // console.log(`Invalid foreign key to website in User`)
-    user.websites = user.websites.filter((website) => { website.domain !== domain })
-  }
+  // if (user.websites.some((webID) => webID === )) {
+  //   // console.log(`Invalid foreign key to website in User`)
+  //   user.websites = user.websites.filter((website) => { website.domain !== domain })
+  // }
 
   const sitemapURL = url.hostname + "/sitemap.xml"
 
@@ -86,10 +86,7 @@ router.post("/", auth, async (req, res) => {
       checkedLinks: [],
       sitemapLinks: (sitemapLinks.length === 0) ? [link] : sitemapLinks
     });
-    user.websites.push({
-      id: website._id,
-      domain: website.domain,
-    });
+    user.websites.push(website.id);
 
     try {
       await Promise.all([user.save(), website.save()])
