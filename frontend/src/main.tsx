@@ -6,6 +6,7 @@ import App from "./App.tsx"
 import Home from "./pages/Home/Home.tsx"
 import Login from "./pages/Login/Login.tsx"
 import Dashboard from "./pages/Dashboard/dashboard.tsx"
+import { UserContextProvider } from "./context/userContext.tsx"
 
 const router = createBrowserRouter([
   {
@@ -13,15 +14,22 @@ const router = createBrowserRouter([
     element: <App />,
   },
   {
-    path : "/",
-    element : <Home/>
-  }, {
-    path : "/login",
-    element : <Login/>
-  },  {
-    path : "/dashboard",
-    element : <Dashboard/>
-  }
+    path: "/",
+    element:
+    <UserContextProvider><Home /></UserContextProvider> ,
+  },
+  {
+    path: "/login",
+    element: (
+      <UserContextProvider>
+        <Login />
+      </UserContextProvider>
+    ),
+  },
+  {
+    path: "/dashboard",
+    element: <Dashboard />,
+  },
 ])
 
 createRoot(document.getElementById("root")!).render(

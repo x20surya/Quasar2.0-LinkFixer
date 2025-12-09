@@ -1,7 +1,16 @@
 import api from "../instance"
-type SignInUser = (email: string, password: string) => Promise<boolean>
 
-
+type LoginOutput = {
+  msg : string
+  success : boolean
+  user : {
+    email : string
+    emailVerified : boolean
+    id : string
+    username : string
+  }
+}
+type SignInUser = (email: string, password: string) => Promise<LoginOutput | null>
 
 export const logInUser: SignInUser = async (email, password) => {
   try {
