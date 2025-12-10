@@ -98,7 +98,7 @@ router.post("/test-aakri-1234", async (req, res) => {
     }
 
     const redis = new Redis(process.env.REDIS_URL)
-    await redis.set(`queued:${website.id}`, 1)
+    await redis.set(`queued:${domain}`, 1)
 
     enqueue("priority_high_domain", JSON.stringify({
         id: website.id,
