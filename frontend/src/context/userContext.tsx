@@ -28,10 +28,11 @@ export const UserContextProvider = ({
     }
     return false
   }
-
+  useEffect(() => {
+    checkLogin()
+  }, [])
   useEffect(() => {
         console.log("User already logged in : ", email, " ", id)
-
   }, [email, id])
 
   async function checkLogin(){
