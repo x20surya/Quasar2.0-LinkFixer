@@ -5,6 +5,7 @@ import { verifyAuthUser } from "../api/auth/verifyAuth"
 type userContextType = {
   email?: string
   id?: string
+  loading : boolean
   updateUser: (email: string, id: string) => boolean
   checkLogin : () => Promise<void>
 }
@@ -18,6 +19,7 @@ export const UserContextProvider = ({
 }) => {
   const [email, setEmail] = useState<string | undefined>()
   const [id, setId] = useState<string | undefined>()
+  const [loading, setLoading] = useState<boolean>(false)
 
   function updateUser(email: string, id: string) {
     if (validator(email, "email")) {
@@ -29,11 +31,9 @@ export const UserContextProvider = ({
     return false
   }
   useEffect(() => {
+    setLoading(true)
     checkLogin()
   }, [])
-  useEffect(() => {
-        console.log("User already logged in : ", email, " ", id)
-  }, [email, id])
 
   async function checkLogin(){
     const res = await verifyAuthUser()
@@ -46,13 +46,15 @@ export const UserContextProvider = ({
         setEmail(res.user.email)
         setId(res.user.id)
     }
+    setLoading(false)
   }
 
   const value: userContextType = {
     email,
     id,
     updateUser,
-    checkLogin
+    checkLogin,
+    loading
   }
   return <UserContext.Provider value={value}>{children}</UserContext.Provider>
 }
