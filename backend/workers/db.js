@@ -20,63 +20,67 @@ export const connectDB = async () => {
 }
 
 const WebsiteSchema = new mongoose.Schema({
-    domain: {
-        type: String,
-        required: true,
-    },
-    checkedAt: {
-        type: Date,
-        default: Date.now,
-    },
+  userID: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: `User`
+  }],
+  ownerID: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: `User`
+  },
+  verifiedUsers: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: `User`
+  }],
+  domain: {
+    type: String,
+    required: true,
+  },
+  sitemapLinks: {
+    type: Array,
+    default: []
+  },
+  checks: [{
     checkedLinks: {
-        type: Array,
-        default: [],
+      type: Array,
+      default: [],
     },
-    sitemapLinks: {
-        type: Array,
-        default: []
-    },
-    options: {
-        authentication: {
-            cookies: {
-                type: Map,
-                of: String,
-                default: new Map()
-            },
-            token: {
-                type: [String],
-                default: []
-            }
-        }
-    },
-    userID: {
-        type: String,
-    },
-    estimatedTime: {
-        priority_low: {
-            type: Number,
-            default: -1
+    aiReport: String,
+    duration: Number,
+    checkedAt: {
+      type: Date,
+      default: Date.now
+    }
+  }],
+  options: {
+    authentication: {
+      type: new mongoose.Schema({
+        cookies: {
+          type: Map,
+          of: String,
+          default: {}
         },
-        priority_mid: {
-            type: Number,
-            default: -1
-        },
-        priority_high: {
-            type: Number,
-            default: -1
+        token: {
+          type: [String],
+          default: []
         }
-    },
-    aiReport: {
-        type: String
-    },
-    updatedAt: {
-        type: Date,
-        default: Date.now,
-    },
-    createdAt: {
-        type: Date,
-        default: Date.now,
-    },
+      }, { _id: false })
+    }
+  },
+  estimatedTime: {
+    priority_low: { type: Number, default: -1 },
+    priority_mid: { type: Number, default: -1 },
+    priority_high: { type: Number, default: -1 }
+  },
+  updatedAt: {
+    type: Date,
+    default: Date.now,
+  },
+  createdAt: {
+    type: Date,
+    default: Date.now,
+  }
 }, { timestamps: true });
+
 
 export const Website = mongoose.model("Website", WebsiteSchema);
