@@ -73,13 +73,15 @@ router.post("/register", async (req, res) => {
 router.get("/verifyAuth", auth, async (req, res) => {
   try {
     const user = await User.findById(req.user.id).select("-password");
-    
+    console.log("Verify Hit")
     if (!user) {
       return res.status(404).json({ 
         authenticated: false, 
         error: "User not found" 
       });
     }
+
+    console.log(user)
 
     return res.json({
       authenticated: true,

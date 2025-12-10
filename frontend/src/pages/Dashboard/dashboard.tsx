@@ -1,12 +1,12 @@
+import DashboardHeader from "../../components/dashboard/DashboardHeader"
 
+function Dashboard() {
 
-function Dashboard(){   
-
-    return <div className=" h-screen w-screen flex">
-        <div className=" bg-gray-900 w-96 flex flex-col">
-
-        </div>
+  return (
+    <div className=" h-screen w-screen flex">
+      <DashboardHeader/>
     </div>
+  )
 }
 
 export default Dashboard

@@ -12,17 +12,19 @@ router.post("/", auth, services, async (req, res) => {
     const userID = req.user.id;
 
     const user = await User.findById(userID)
-    if (!user.websites.some((website) => { return websiteID === website.id })) {
+    if (!user.websites.some((website) => { return websiteID == website.toString() })) {
         // this should not be possible
         return res.status(404).json({
-            error: `Website not found`
+            error: `Website not found 1`
         })
     }
-
+    
     const website = await Website.findById(websiteID)
     if (website === null) {
+        console.log(user.websites)
+        console.log(websiteID)
         return res.status(404).json({
-            error: `Website not found`
+            error: `Website not found 2`
         })
     }
 
@@ -41,12 +43,18 @@ router.post("/", auth, services, async (req, res) => {
             })
         }
     }
+    const domain = website.domain
     const redis = new Redis(process.env.REDIS_URL)
+    const queuedKey = `queued:${domain}`
 
-    const isQueued = await redis.get(`queued:${domain}`)
+    console.log(queuedKey)
+
+    const isQueued = await redis.get(queuedKey)
     if (isQueued === 1 || isQueued === "1") {
         return res.status(200).json({ msg: `website already in queue` })
     }
+    const temp = await redis.set(queuedKey, 1)
+
     
     const queueLength = await enqueue("priority_high_domain", JSON.stringify({
         id: websiteID,
@@ -90,7 +98,7 @@ router.post("/test-aakri-1234", async (req, res) => {
     }
 
     const redis = new Redis(process.env.REDIS_URL)
-    await redis.set(`queued:${website.id}`, 1)
+    await redis.set(`queued:${domain}`, 1)
 
     enqueue("priority_high_domain", JSON.stringify({
         id: website.id,

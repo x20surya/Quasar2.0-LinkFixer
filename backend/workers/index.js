@@ -126,6 +126,7 @@ try {
                 return
             }
 
+
             const websiteID = currWebsite.id
             const domain = currWebsite.domain
             const sitemapLinks = currWebsite.sitemapLinks
@@ -134,6 +135,7 @@ try {
             const linkQueue = domain + "_links"
             const activeBrowserKey = `${websiteID}_active_browsers`
             const queuedKey = `queued:${domain}`
+            console.log(queuedKey)
 
             console.log(`Recieved :: ${domain}, By :: ${queue}`)
 
@@ -242,10 +244,11 @@ try {
                                         if (browser.failure < 3) { browserChannel.sendToQueue(browserChannelQueue, Buffer.from(JSON.stringify(browser))) }
                                         else {
                                             const remaining_browsers = await browserChannel.checkQueue(browserChannelQueue)
-                                            if(remaining_browsers.messageCount === 0){
+                                            if (remaining_browsers.messageCount === 0) {
                                                 console.log(`!!! NO SCRAPERS WORKING !!!`)
                                                 await redis.set(`SERVICES:DOWN`, 1)
                                                 channel.nack(msg_website)
+                                                console.log("xx")
                                                 return
                                             }
                                         }
@@ -355,6 +358,8 @@ try {
                             if (Number(isCancelled) === 1 || isCancelled === "1") {
                                 console.log("Saving to db")
                                 await currWebsite.save()
+                                console.log("Saved to db")
+
                             }
 
                             // Clean up active browser counter
