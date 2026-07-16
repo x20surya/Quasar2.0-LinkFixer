@@ -1,7 +1,8 @@
 import mongoose from "mongoose";
-export const connectDB=async()=>{
+import { env } from "../config/env.js";
+export const connectDB = async()=>{
     try{
-        const mongoURL = process.env.MONGO_URI
+        const mongoURL = env.MONGO_URI
         if(!mongoURL){
             console.error("MongoURL not found in env")
             process.exit(1)
@@ -12,7 +13,7 @@ export const connectDB=async()=>{
         console.log(`MongoDB connected`)
     }
     catch(error){
-        console.log(`Error: ${error.message}`);
+        console.log(`Error: ${(error as Error).message}`);
         process.exit(1);
     }
 }

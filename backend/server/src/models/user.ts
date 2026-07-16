@@ -2,6 +2,7 @@ import mongoose, { Schema } from "mongoose";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { v4 as uuidv4 } from 'uuid';
+import { env } from "../config/env.js";
 
 const UserSchema = new mongoose.Schema({
   username: {
@@ -113,19 +114,19 @@ UserSchema.pre("save", async function (next) {
     this.password = await bcrypt.hash(this.password, salt);
     next();
   } catch (error) {
-    next(error);
+    next(error as Error);
   }
 });
 
 UserSchema.methods.generateAuthToken = function () {
   return jwt.sign(
     { id: this._id, email: this.email, emailVerified: this.emailVerified },
-    process.env.JWT_SECRET,
+    env.JWT_SECRET,
     { expiresIn: "1d" }
   );
 };
 
-UserSchema.methods.comparePassword = async function (password) {
+UserSchema.methods.comparePassword = async function (password : string) {
   return await bcrypt.compare(password, this.password);
 };
 
@@ -133,7 +134,7 @@ UserSchema.methods.generateVerificationToken = function () {
   const jti = uuidv4();
   const verificationToken = jwt.sign(
     { id: this._id, email: this.email, iss: "link-fixer", jti },
-    process.env.EMAIL_SECRET
+    env.EMAIL_SECRET
   );
 
   this.verificationToken = verificationToken;

@@ -5,7 +5,8 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node index.js",
-    "dev": "nodemon --legacy-watch index.js"
+    "dev": "nodemon --legacy-watch index.js",
+    "build": "npx tsc"
   },
   "type": "module",
   "author": "",
@@ -26,9 +27,16 @@
     "mongoose": "^8.13.1",
     "node-cron": "^3.0.3",
     "uuid": "^13.0.0",
-    "xml2js": "^0.6.2"
+    "xml2js": "^0.6.2",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
-    "nodemon": "^3.1.10"
+    "@types/cookie-parser": "^1.4.10",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/node": "^26.1.1",
+    "nodemon": "^3.1.10",
+    "typescript": "^7.0.2"
   }
 }
