@@ -7,33 +7,21 @@ import { websiteController } from "./website.container.js"
 const router = Router()
 
 // Serves the protected website route.
-router.get("/protected", authMiddleware, (req, res) => {
-  return websiteController.getProtected(req, res)
-})
+router.get("/protected", authMiddleware, websiteController.getProtected)
 
 // Verifies a website ownership token.
-router.post("/verifyWebsite", authMiddleware, (req, res) => {
-  void websiteController.verifyWebsite(req, res)
-})
+router.post("/verifyWebsite", authMiddleware, websiteController.verifyWebsite)
 
 // Adds a website to the current user.
-router.post("/addWebsite", authMiddleware, (req, res) => {
-  void websiteController.addWebsite(req, res)
-})
+router.post("/addWebsite", authMiddleware, websiteController.addWebsite)
 
 // Removes a website from the current user.
-router.post("/removeWebsite", authMiddleware, (req, res) => {
-  void websiteController.removeWebsite(req, res)
-})
+router.post("/removeWebsite", authMiddleware, websiteController.removeWebsite)
 
 // Queues a scan for a website.
-router.post("/scanWebsite", authMiddleware, services, (req, res) => {
-  void websiteController.scanWebsite(req, res)
-})
+router.post("/scanWebsite", authMiddleware, services, websiteController.scanWebsite)
 
 // Development-only test route.
-router.post("/test-aakri-1234", (req, res) => {
-  void websiteController.testWebsite(req, res)
-})
+router.post("/test-aakri-1234", websiteController.testWebsite)
 
 export default router

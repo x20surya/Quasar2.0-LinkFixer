@@ -1,4 +1,4 @@
-import { env } from "node:process"
+import { env } from "./config/env.js"
 import { createServer } from "./server.js"
 
 const startServer = async () => {
