@@ -4,10 +4,12 @@ WORKDIR /src
 
 COPY package* ./
 
-RUN npm install
-
-EXPOSE 5000
+RUN npm ci
 
 COPY . .
 
-CMD ["npm", "run", "dev"]
+RUN npm run build
+
+EXPOSE 5000
+
+CMD ["npm", "run", "start"]

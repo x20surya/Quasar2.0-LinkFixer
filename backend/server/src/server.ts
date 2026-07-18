@@ -22,9 +22,5 @@ export const createServer = async () => {
 
   registerRoutes(app)
 
-  app.get("/health", (req, res) => {
-    res.status(200).send("OK")
-  })
-
   return app
 }

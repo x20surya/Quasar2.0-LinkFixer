@@ -1,5 +1,6 @@
 import type { Request, Response } from "express"
 import type { UserService } from "./user.service.js"
+import { asyncHandler } from "../../utils/asyncHandler.js"
 
 type AuthenticatedRequest = Request & {
 	user?: {
@@ -11,7 +12,7 @@ export class UserController {
 	constructor(private readonly service: UserService) {}
 
 	// Handles the websites lookup request for the current user.
-	async getWebsites(req: AuthenticatedRequest, res: Response) {
+	getWebsites = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
 		const userId = req.user?.id
 
 		if (!userId) {
@@ -27,5 +28,5 @@ export class UserController {
 		}
 
 		return res.status(200).json(payload)
-	}
+	})
 }
