@@ -7,7 +7,7 @@ export const connectDB = async()=>{
             console.error("MongoURL not found in env")
             process.exit(1)
         }
-        const connection=await mongoose.connect(mongoURL, {
+        const connection = await mongoose.connect(mongoURL, {
             dbName : "linkfixerDB"
         })
         console.log(`MongoDB connected`)

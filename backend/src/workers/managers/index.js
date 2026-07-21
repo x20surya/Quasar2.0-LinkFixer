@@ -1,71 +1,22 @@
 import amqp from "amqplib"
 import { Redis } from "ioredis"
-import { connectDB, Website } from "./db.js";
+import {connectDB} from "@/src/database/connectdb.js"
 
-/**
- * Queues Used :---
- * 
- * priority_low_domain / priority_mid_domain / priority_high_domain : 
- * stores : website domains 
- * format : message : {
- *              id : uid for the website in mongo
- *              attempt : number of tries given to current website, max 3
- *          }
- * 
- * 
- * <domain>_links :
- * stores : internal and external links of domains currently being processed
- * format : link : {
- *              link : string,
- *              depth : smallest diff from a sitemap link         
- *          }
- * 
- * 
- * available_browsers : 
- * stores : stores links of puppeteer browser instances currently idle
- * format : browser : {
- *              id : unique
- *              failure
- *          }
- */
 
-/**  Redis -> 
- * 
- *  queued:${websiteID}
- *      VALUE : 0 -> stop execution 1 -> continue execution
- *      status of website queue
- *  
- *  <website_id>_active_browsers
- *      VALUE :: number
- *      number of browsers currently working on a website_id
- * 
- *  SERVICES:DOWN
- *      1 -> all services down, no scraper available
- * 
- *  reports
- *      value -> as needed by coder for admin portal
- *  
- *  
-*/
 
-await connectDB()
+await sleep(15000)
 
 const queue = process.env.QUEUE || "priority_low"
 const nextQueue = process.env.NEXT_QUEUE || "priority_mid"
 const instances = Number.parseInt(process.env.INSTANCES) || 1
 const maxLimit = Number.parseInt(process.env.LINK_LIMIT) || undefined
+const redisURL = process.env.REDIS_URL
+const rabbitMQURL = process.env.RABBITMQ_URL
 
 const browserChannelQueue = "available_browsers"
 const websiteQueue = queue + "_domain"
 
-const redisURL = process.env.REDIS_URL
-const rabbitMQURL = process.env.RABBITMQ_URL
 
-function sleep(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
-}
-
-await sleep(15000)
 let redis
 try {
     redis = new Redis(redisURL)

@@ -3,12 +3,11 @@ services:
     env_file:
       - .env
     build:
-      context: ./server
+      context: .
       dockerfile: Dockerfile
     container_name: backend
     volumes:
-      - ./server:/src
-      - /src/node_modules
+      - /app/node_modules
     ports:
       - "5000:5000"
     depends_on:
@@ -40,14 +39,15 @@ services:
       - "15672:15672"
       - "5672:5672"
     mem_limit: 150m
+
   manager:
     env_file:
       - .env
     build:
-      context: ./workers
+      context: .
       dockerfile: Dockerfile
+    command: node dist/workers/managers/index.js
     volumes:
-      - ./workers:/app
       - /app/node_modules
     container_name: manager
     environment:
