@@ -1,5 +1,5 @@
 import { sleep } from "../../utils/sleep.js";
-import { Manager } from "./manager.js";
+import { Manager } from "./Manager.js";
 
 /**
  * Queues Used :---

@@ -80,11 +80,13 @@ export class Manager {
       return
     }
 
+    
     // Initialize active browser counter for this domain
     await this.redis.set(activeBrowserKey, 0)
 
     // create a queue and push links into queue
     this.linkChannel.assertQueue(linkQueue, { durable: true })
+    await this.linkChannel.purgeQueue(linkQueue)
 
     for (const link of sitemapLinks) {
       this.linkChannel.sendToQueue(
@@ -146,45 +148,55 @@ export class Manager {
               console.log("Failure and 0 ACTIVE BROWSER\n")
               console.log(message)
 
-              if (Number(message.attempt) >= 3) {
+              if (Number(message.attempt) >= 1) { // TODO make max attempts a global variable
                 // Too many attempts already: log a fatal error and stop retrying this website.
                 await this.redis.del(queuedKey)
                 await this.redis.del(activeBrowserKey)
+                console.log("[Manual] [1] Acking website, as max attempts reached for one website")
                 this.channel.ack(msg_website)
-                await this.redis.rpush(
-                  `reports`,
-                  JSON.stringify({
+                console.log("[Manual] [2] Acked website, as max reached without error")
+
+                const data =  JSON.stringify({
                     trace: `/backend/workers/index.js`,
                     level: `high`,
                     type: `worker`,
                     queue_name: this.queue,
                     caller: `onFailure()`,
                     message: `onFailure() called for ${browser.id}`,
-                  }),
+                  })
+
+                await this.redis.rpush(
+                  `reports`,
+                  data
                 )
+                console.log(data)
                 try {
                   if (browserConsumerTag) await this.browserChannel.cancel(browserConsumerTag)
                 } catch (err) {
                   console.error("Error cancelling browser consumer:", err)
                 }
+                console.log("[Manual] [3] Adding the remaining browsers to Browser Queue")
+                
                 for (const temp_msg of browser_message_batch) {
                   try {
                     if (temp_msg === msg_browser) {
                       if (shouldIncrementFailureCount) browser.failure = Number(browser.failure) + 1
-                      if (browser.failure < 3) {
+                      // if (browser.failure < 3) {
                         this.browserChannel.sendToQueue(
                           this.browserChannelQueue,
                           Buffer.from(JSON.stringify(browser)),
                         )
-                      } else {
-                        const remaining_browsers = await this.browserChannel.checkQueue(this.browserChannelQueue)
-                        if (remaining_browsers.messageCount === 0) {
-                          console.log(`!!! NO SCRAPERS WORKING !!!`)
-                          await this.redis.set(`SERVICES:DOWN`, 1)
-                          this.channel.nack(msg_website)
-                          return
-                        }
-                      }
+                      // } else {
+
+                        // TODO Need to consider logic here to handle a browser failing multiple times consequtively
+                        
+                        // const remaining_browsers = await this.browserChannel.checkQueue(this.browserChannelQueue)
+                        // if (remaining_browsers.messageCount === 0) {
+                        //   console.log(`!!! NO SCRAPERS WORKING !!!`)
+                        //   await this.redis.set(`SERVICES:DOWN`, 1)
+                        //   return
+                        // }
+                      // }
                     } else {
                       this.browserChannel.sendToQueue(this.browserChannelQueue, Buffer.from(temp_msg.content))
                     }

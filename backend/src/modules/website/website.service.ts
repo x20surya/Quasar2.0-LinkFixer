@@ -369,11 +369,10 @@ export class WebsiteService {
       await this.repo.saveWebsite(website)
     }
 
-    const redisUrl = process.env.REDIS_URL
-    if (!redisUrl) {
+    if (!env.REDIS_URL) {
       throw new WebsiteError("Redis URL is not configured", 500)
     }
-    const redis = new Redis(redisUrl)
+    const redis = new Redis(env.REDIS_URL)
     await redis.set(`queued:${domain}`, 1)
 
     await enqueue(

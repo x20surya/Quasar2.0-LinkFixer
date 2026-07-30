@@ -1,6 +1,7 @@
 // StatusSubscriber.ts
 import { Redis } from "ioredis"
 import { connectRedis } from "../../database/connectRedis.js"
+import { channel } from "node:diagnostics_channel"
 
 /**
  * Watches ONE browser's status channel in Redis and reports back whether
@@ -67,7 +68,13 @@ export class StatusSubscriber {
     this.subscriber.subscribe(this.channelName)
 
     // Start the "did we ever hear back" countdown.
-    this.startTimeout(onFailure, timeoutMs)
+    this.startTimeout(() => {
+      onFailure(false)
+      console.log("Did not recieve status from Scraper")
+    }, timeoutMs)
+
+    console.log("Set timeout")
+    console.log(this.channelName)
 
     this.subscriber.on("message", async (channel, msg) => {
       console.log("Receiving status = ", msg)
@@ -84,9 +91,12 @@ export class StatusSubscriber {
 
       const status = Number(msg)
 
+      console.log("Recieved status ::: " + msg)
+
       // 1 -> still working. Just reset the "no news" timer and let the
       // caller know, then keep listening for more messages.
       if (status === 1) {
+        console.log("Scraper working nice :: Recieved 1")
         this.hasReceivedHeartbeat = true
         this.clearTimeoutHandle()
         this.startTimeout(onFailure, timeoutMs)
@@ -97,6 +107,7 @@ export class StatusSubscriber {
       // -1 -> browser reported its own failure. We're done listening,
       // so clean up first, then tell the caller.
       if (status === -1) {
+        console.log("Handling a failure signal from the scraper :: Recieved -1")
         this.clearTimeoutHandle()
         await this.cleanup()
         await onFailure(false) // an explicit failure report is never "fresh"
@@ -104,13 +115,14 @@ export class StatusSubscriber {
       }
 
       // 0 -> finished normally.
+      console.log("Scraper completed scraping without error :: Recieved 0")
       this.clearTimeoutHandle()
       await this.cleanup()
       await onComplete()
     })
 
     this.subscriber.on("error", (err) => {
-      console.error(`Subscriber error for ${this.channelName}:`, err)
+      console.error(`[Manual Logging] Subscriber error for ${this.channelName}:`, err)
     })
   }
 

@@ -1,17 +1,17 @@
 import {Redis} from "ioredis"
-import { env } from "../config/env.js"
+import { config } from "../config/index.js"
 
 export async function connectRedis() {
-    const redis = new Redis(env.REDIS_URL, {enableReadyCheck : false})
+    const redis = new Redis(config.Redis_URL, {enableReadyCheck : false})
     await new Promise<void>((resolve, reject) => {
       const onConnect = () => {
-        console.log("Connected to Redis ✅")
+        console.log("Connected to Redis")
         cleanup()
         resolve()
       }
 
       const onError = (error: Error) => {
-        console.log("Error in connection to Redis ❌")
+        console.log("Error in connection to Redis")
         console.error(error.message)
         cleanup()
         reject(error)
