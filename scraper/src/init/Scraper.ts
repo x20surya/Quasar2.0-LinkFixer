@@ -4,7 +4,7 @@ import { Redis } from "ioredis"
 import puppeteer, { type Browser, type Page } from "puppeteer"
 import { config } from "../config/index.js"
 import getRedisChannel, { getRedisCheckedLinksKey, getRedisHealthKey, getRedisPauseStatusKey } from "../utils/getRedisChannel.js"
-import { createPage, visitLink } from "./linkHelpers.js"
+import { createPage } from "./linkHelpers.js"
 import type {
   CrawlSession,
   DomainAssignment,
@@ -15,6 +15,7 @@ import type {
 } from "./types.js"
 import { connectRedis } from "../db/connectRedis.js"
 import { browserOptions } from "../utils/browserOptions.js"
+import { PageUtilities } from "./Utilities.js"
 
 export class Scraper {
   private interval: TimerHandle | null
@@ -142,6 +143,7 @@ export class Scraper {
       setPauseTimeout: null,
       pauseStatusTimeout: null,
       consumerTag: null,
+      utilities : ["visit"]
     }
   }
 
@@ -378,6 +380,7 @@ export class Scraper {
         // impossible condition due to prefetch limitation on the channel
         throw new Error("No page available")
       }
+      const utilities = new PageUtilities(page, session)
 
       const data = JSON.parse(msg.content.toString()) as LinkMessage
       if (data.link === undefined || data.depth === undefined) {
@@ -418,7 +421,7 @@ export class Scraper {
           console.log(`[${config.ID}] :: Base Domain Set to :: ` + session.baseDomain)
         }
 
-        linkInfo = await visitLink(data.link, page, session.baseDomain)
+        linkInfo = await utilities.handleLink(data.link)
         console.log(`[${config.ID}] :: Link Info Recieved for :: ` + data.link)
       } catch (err) {
         console.error(`[${config.ID}] :: ERROR IN VISITING LINK :: ` + err)

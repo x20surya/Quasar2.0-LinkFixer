@@ -30,7 +30,8 @@ export type CrawlSession = {
   totalPauseTime: number
   setPauseTimeout: TimerHandle | null
   pauseStatusTimeout: TimerHandle | null
-  consumerTag: string | null
+  consumerTag: string | null,
+  utilities: typeof SCRAPER_UTILITIES[number][]
 }
 
 export type CheckLinkResult = {
@@ -60,3 +61,11 @@ export type LinkRecord = {
   statusText?: string
   timestamp: number
 }
+
+/**
+ * visit : visit a page and check for dead links(internal and external)
+ * eval_metadata : visit a page and check validity of metadata for a page using AI LLM parser
+ * eval_schema : visit a page and check validity of metadata for a page using AI LLM parser
+ * response_time : visit a page and record the response_times for the page, to five a value for the frontend latencies
+ */
+export const SCRAPER_UTILITIES = ["visit", "eval_metadata", "eval_schema", "response_time"] as const

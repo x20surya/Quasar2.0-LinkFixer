@@ -27,5 +27,13 @@ export async function connectRedis() {
     }).catch(() => {
       process.exit(1)
     })
+
+    try {
+      await redis.config("SET", "maxmemory-policy", "allkeys-lfu")
+      console.log("maxmemory-policy set to allkeys-lfu")
+    } catch (error) {
+      console.error("Failed to set maxmemory-policy:", (error as Error).message)
+    }
+
     return redis
   }
